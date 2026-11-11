@@ -273,7 +273,7 @@ def checklist(c, x, y, w=320, h=420, items=4, checked=0.0):
     c.rect((x - w * 0.2, top - 16, x + w * 0.2, top + 26), fill=config.GREY, outline=INK, width=5, radius=10)
 
     row_h = (h - 70) / n
-    box = min(44.0, row_h * 0.6)
+    box = min(w * 0.15, row_h * 0.6)
     for i, label in enumerate(labels):
         cy = top + 56 + row_h * (i + 0.5)
         bx = left + 30
@@ -281,7 +281,7 @@ def checklist(c, x, y, w=320, h=420, items=4, checked=0.0):
         c.rect((bx, cy - box / 2, bx + box, cy + box / 2), fill=config.WHITE, outline=INK, width=5, radius=6)
         tx = bx + box + 22
         if label:
-            c.text((tx, cy), label, box * 0.62, config.GREY if done >= 1 else INK, anchor="lm")
+            c.text((tx, cy), label, box * 0.6, config.GREY if done >= 1 else INK, anchor="lm")
         else:
             c.line((tx, cy), (left + w - 34, cy), config.GREY, 9)
         if done > 0:
@@ -370,3 +370,23 @@ def zzz(c, x, y, t, size=44, color=config.BLUE):
         zy = y - 170 * phase
         c.polyline([(zx - s / 2, zy - s / 2), (zx + s / 2, zy - s / 2),
                     (zx - s / 2, zy + s / 2), (zx + s / 2, zy + s / 2)], color, max(3.0, s * 0.2))
+
+
+# ---------------------------------------------------------------------------
+# extra: tomato (the Pomodoro timer's namesake)
+# ---------------------------------------------------------------------------
+def tomato(c, x, y, size=260):
+    """A tomato, `size` px wide."""
+    u = size / 2
+    edge = max(3.0, size * 0.03)
+    c.ellipse((x - u, y - u * 0.8, x + u, y + u * 0.9), fill=config.RED, outline=INK, width=edge)
+    c.ellipse((x - u * 0.62, y - u * 0.45, x - u * 0.3, y - u * 0.05), fill=_mix(config.RED, config.WHITE, 0.45))
+    # Leaves: a five-pointed star of thin triangles around the stem.
+    top = (x, y - u * 0.72)
+    for i in range(5):
+        a = math.radians(-90 + (i - 2) * 42)
+        tip = (top[0] + math.cos(a) * u * 0.55, top[1] - math.sin(-a) * u * 0.32 + u * 0.12)
+        side = (math.cos(a + math.pi / 2) * u * 0.11, math.sin(a + math.pi / 2) * u * 0.07)
+        c.polygon([tip, (top[0] + side[0], top[1] + side[1]), (top[0] - side[0], top[1] - side[1])],
+                  fill=config.GREEN, outline=INK, width=edge * 0.7)
+    c.line(top, (x + u * 0.06, y - u * 1.02), _shade(config.GREEN, 0.7), edge * 2.2)

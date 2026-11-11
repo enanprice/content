@@ -1,0 +1,69 @@
+{
+  "title": "Why the Pomodoro technique really works",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "whoosh": true,
+  "captions": { "max_words": 3, "uppercase": true },
+  "scenes": [
+    {
+      "narration": "This study trick works... but not for the reason you think.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": "tomato",
+      "keyword": "STUDY TRICK",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "It's the Pomodoro technique. Twenty-five minutes of work, then a five minute break.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": { "type": "clock", "time": 12, "spin": 0.1 },
+      "keyword": "25 + 5"
+    },
+    {
+      "narration": "People say it works because the breaks recharge your brain.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": { "type": "battery", "from": 0.15, "level": 1.0 },
+      "keyword": "RECHARGE?"
+    },
+    {
+      "narration": "Nice idea. But that's not the main reason.",
+      "pose": "facepalm",
+      "expression": "tired",
+      "prop": { "type": "thought_bubble", "text": "?" },
+      "keyword": "NOT QUITE",
+      "camera": "shake"
+    },
+    {
+      "narration": "The hardest part of studying is starting. An essay feels huge, so you grab your phone.",
+      "pose": "idle",
+      "expression": "stressed",
+      "prop": "phone",
+      "keyword": "STARTING"
+    },
+    {
+      "narration": "But twenty-five minutes? Easy. The timer shrinks the task until starting isn't scary.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": { "type": "arrow", "direction": "down", "color": "#58B86C" },
+      "keyword": "JUST 25",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "And once you've started, you usually keep going.",
+      "pose": "walking",
+      "expression": "happy",
+      "prop": { "type": "bar_chart", "values": [0.25, 0.5, 0.75, 1.0] },
+      "keyword": "MOMENTUM"
+    },
+    {
+      "narration": "So set a timer, do one round, and tick it off.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": { "type": "checklist", "items": ["Set timer", "One round", "Tick it off"], "checked": 3 },
+      "keyword": "ONE ROUND"
+    }
+  ]
+}

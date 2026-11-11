@@ -47,9 +47,127 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-The only dependency is Pillow (>= 10.1).
+That installs Pillow (drawing) and edge-tts (narration). edge-tts calls
+Microsoft's online speech service, so rendering a narrated video needs an
+internet connection; `--no-tts` works offline.
 
-## Render
+## Videos from JSON
+
+Each video is one JSON file: a list of scenes, each with narration, a pose, an
+expression, a prop and a keyword.
+
+```bash
+python render_video.py videos/pomodoro.json
+```
+
+Writes `output/pomodoro.mp4` (about 40 seconds; rendering takes about 100
+seconds). What happens:
+
+1. The JSON is validated. Every problem is reported at once, with its location.
+2. edge-tts speaks each scene's narration in a UK English voice. The length of
+   the speech sets the length of the scene.
+3. Frames are drawn with word-by-word captions burned in, timed to the voice,
+   the current word highlighted.
+4. Narration, a soft whoosh on each transition and optional background music
+   are mixed and attached.
+
+| Flag | Effect |
+| --- | --- |
+| `--check` | validate the JSON and stop |
+| `--no-tts` | no voice, timings estimated from the text; for quick offline previews |
+| `--guides` | tint everything outside the safe zone red |
+| `--fast` | supersampling off, about 3x faster, slightly jagged |
+| `--out PATH` | output file |
+
+### Format
+
+```json
+{
+  "title": "Why the Pomodoro technique really works",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "whoosh": true,
+  "music": { "path": "music/track.mp3", "volume": 0.08 },
+  "captions": { "max_words": 3, "uppercase": true, "highlight": "#FFDD00" },
+  "scenes": [
+    {
+      "narration": "This study trick works... but not for the reason you think.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": "tomato",
+      "keyword": "STUDY TRICK",
+      "camera": "zoom_in"
+    }
+  ]
+}
+```
+
+Only `scenes` and each scene's `narration` are required.
+
+**Top level**
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `voice` | any edge-tts voice; UK ones: `en-GB-RyanNeural`, `en-GB-SoniaNeural`, `en-GB-LibbyNeural`, `en-GB-ThomasNeural`, `en-GB-MaisieNeural` | `en-GB-RyanNeural` |
+| `rate` | speaking speed, e.g. `"+10%"`, `"-5%"` | `"+0%"` |
+| `transition` | `slide_left`, `slide_right`, `slide_up`, `slide_down`, `cut` | `slide_left` |
+| `whoosh` | `true` / `false`: sound on each slide | `true` |
+| `music` | `{"path", "volume"}` or `null`. Path is relative to the JSON file. The track is looped, faded in and out. Volume 0-1 | none, volume `0.08` |
+| `captions` | `enabled`, `max_words` (1-5), `uppercase`, `highlight` (hex colour) | on, 3, true, yellow |
+
+**Scene**
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `narration` | the spoken text, up to 400 characters | required |
+| `pose` | `idle`, `talking`, `pointing`, `facepalm`, `shrug`, `sleeping`, `walking` (+ `scrolling`, `hold_book`, `read_book`) | `talking` |
+| `expression` | `neutral`, `happy`, `stressed`, `smug`, `tired`, `guilty`, `asleep` | `neutral` |
+| `prop` | a name, an object with options (below), or `null` | none |
+| `keyword` | on-screen text, up to 24 characters. Pops in when its first word is spoken | none |
+| `camera` | `none`, `zoom_in` (slow push), `shake` (when the keyword lands) | `none` |
+| `background` | hex colour | rotates through a palette |
+
+**Props and their options**
+
+| Prop | Options |
+| --- | --- |
+| `phone`, `brain`, `tomato` | none |
+| `book` | `open` (true/false) |
+| `clock` | `time` (hours, 0-24), `spin` (hours per second) |
+| `battery` | `from`, `level` (0-1): charges from one to the other during the scene |
+| `thought_bubble` | `text` (up to 6 characters) |
+| `checklist` | `items` (1-5 texts, up to 12 characters each), `checked` (how many get ticked) |
+| `bar_chart` | `values` (2-5 numbers, 0-1), `labels` |
+| `arrow` | `direction` (`up`, `down`, `left`, `right`), `color` |
+
+### Hitting a target length
+
+Scene length comes from the audio, so you tune length by editing the script.
+The render prints a timeline first:
+
+```
+  scene 1:   0.0s ->   3.8s ( 3.8s)  This study trick works... but not for the reason
+  ...
+  total: 39.4s
+```
+
+`en-GB-RyanNeural` speaks roughly 2.5 words per second including pauses. Speech
+is cached in `.cache/tts`, so only scenes whose narration changed are fetched
+again.
+
+### Music
+
+No music is bundled. Point `music.path` at any audio file you have the rights
+to use. `0.08` sits well under a voice; go above `0.15` and it starts to fight
+the narration.
+
+### Behind a corporate proxy
+
+If your network inspects TLS, set `SSL_CERT_FILE` to the proxy's CA bundle and
+`HTTPS_PROXY` to the proxy address; the narration step picks both up.
+
+## Hand-built test video
 
 ```bash
 python make_test_video.py
@@ -83,7 +201,14 @@ stickvid/
                bar_chart, arrow (+ zzz, backdrop)
   camera.py    Camera, CameraRig (zoom-in, shake), slide_transition
   video.py     VideoWriter: pipes raw frames into ffmpeg
-make_test_video.py   the 10-second demo, a worked example of everything
+  spec.py      JSON video format: loading and validation
+  tts.py       edge-tts narration with per-word timings (cached)
+  captions.py  word-by-word burned-in captions
+  audio.py     whoosh synthesis, narration + music mix
+  director.py  spec -> scenes -> timeline -> finished MP4
+render_video.py      render a video from a JSON file
+videos/pomodoro.json example: 40 seconds on the Pomodoro technique
+make_test_video.py   the hand-built 10-second demo of the Python API
 make_showcase.py     reference sheets
 ```
 
@@ -101,7 +226,10 @@ Zooming enlarges everything, so objects near the edge of the safe zone will
 drift out of it during a zoom. In the demo the clock does this while the
 camera is on the face. Check with `--guides` when you add a zoom.
 
-## Writing a scene
+## Writing a scene in Python
+
+The JSON format covers the common case. For custom animation (like the phone
+drop in the test video), use the Python API directly.
 
 Everything is a function of time `t` in seconds. You schedule transitions
 once, then ask for the state at each frame.
@@ -152,7 +280,7 @@ sweat...) that blends smoothly between any two expressions.
 ## Notes
 
 - Frames are drawn at 2x and scaled down for anti-aliasing (`config.SSAA`).
-- The MP4 is H.264 / yuv420p / faststart with no audio track. Add sound in your
-  editor, or mux it: `ffmpeg -i output/test_video.mp4 -i voice.m4a -c:v copy -c:a aac -shortest final.mp4`
+- Output is H.264 / yuv420p / faststart, with AAC audio for JSON videos. The
+  hand-built test video is silent.
 - Text uses DejaVu Sans Bold or Arial Bold if found, otherwise Pillow's
   built-in font. Add your own font path to `_FONT_CANDIDATES` in `canvas.py`.
