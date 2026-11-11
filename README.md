@@ -54,7 +54,11 @@ internet connection; `--no-tts` works offline.
 ## Videos from JSON
 
 Each video is one JSON file: a list of scenes, each with narration, a pose, an
-expression, a prop and a keyword.
+expression, a prop, a keyword and a setting (the room it happens in).
+
+`videos/` holds eleven examples: `pomodoro.json` plus a test batch of ten on
+study technique. Each carries a `source` field naming the research behind it;
+`videos/SOURCES.md` collects them in one place for checking.
 
 ```bash
 python render_video.py videos/pomodoro.json
@@ -66,8 +70,8 @@ seconds). What happens:
 1. The JSON is validated. Every problem is reported at once, with its location.
 2. edge-tts speaks each scene's narration in a UK English voice. The length of
    the speech sets the length of the scene.
-3. Frames are drawn with word-by-word captions burned in, timed to the voice,
-   the current word highlighted.
+3. Frames are drawn with captions burned in a phrase at a time, timed to the
+   voice: spoken words in white, the current word tinted, upcoming words dimmed.
 4. Narration, a soft whoosh on each transition and optional background music
    are mixed and attached.
 
@@ -89,14 +93,24 @@ seconds). What happens:
   "transition": "slide_left",
   "whoosh": true,
   "music": { "path": "music/track.mp3", "volume": 0.08 },
-  "captions": { "max_words": 3, "uppercase": true, "highlight": "#FFDD00" },
+  "captions": { "max_words": 4, "uppercase": false, "highlight": "#FFDD78" },
+  "source": {
+    "citation": "Author, A. (2006). Title. Journal, 1(2), 3-4.",
+    "finding": "What the study found, in plain words.",
+    "evidence": "moderate",
+    "caveat": "What it does not show.",
+    "link": "https://doi.org/..."
+  },
   "scenes": [
     {
       "narration": "This study trick works... but not for the reason you think.",
       "pose": "pointing",
       "expression": "smug",
       "prop": "tomato",
-      "keyword": "STUDY TRICK",
+      "keyword": "A study trick",
+      "setting": "desk",
+      "time": "day",
+      "move": "stay",
       "camera": "zoom_in"
     }
   ]
@@ -114,7 +128,8 @@ Only `scenes` and each scene's `narration` are required.
 | `transition` | `slide_left`, `slide_right`, `slide_up`, `slide_down`, `cut` | `slide_left` |
 | `whoosh` | `true` / `false`: sound on each slide | `true` |
 | `music` | `{"path", "volume"}` or `null`. Path is relative to the JSON file. The track is looped, faded in and out. Volume 0-1 | none, volume `0.08` |
-| `captions` | `enabled`, `max_words` (1-5), `uppercase`, `highlight` (hex colour) | on, 3, true, yellow |
+| `captions` | `enabled`, `max_words` (1-5), `uppercase`, `highlight` (hex colour) | on, 4, false, soft yellow |
+| `source` | `citation` (required), `finding`, `evidence` (`strong`, `moderate`, `mixed`), `caveat`, `link`. Never shown on screen | none |
 
 **Scene**
 
@@ -124,9 +139,12 @@ Only `scenes` and each scene's `narration` are required.
 | `pose` | `idle`, `talking`, `pointing`, `facepalm`, `shrug`, `sleeping`, `walking` (+ `scrolling`, `hold_book`, `read_book`) | `talking` |
 | `expression` | `neutral`, `happy`, `stressed`, `smug`, `tired`, `guilty`, `asleep` | `neutral` |
 | `prop` | a name, an object with options (below), or `null` | none |
-| `keyword` | on-screen text, up to 24 characters. Pops in when its first word is spoken | none |
+| `keyword` | up to 24 characters, shown as a handwritten note taped to the wall. Appears when its first word is spoken | none |
+| `setting` | `plain`, `bedroom`, `desk`, `living_room`, `classroom`, `library`, `park` | `plain` |
+| `time` | `day`, `night` (dark window, dimmer room) | `day` |
+| `move` | `stay`, `approach` (walks up from the back of the room), `pace` (walks across and back) | `stay` |
 | `camera` | `none`, `zoom_in` (slow push), `shake` (when the keyword lands) | `none` |
-| `background` | hex colour | rotates through a palette |
+| `background` | hex colour: overrides the setting's wall colour | the setting's own |
 
 **Props and their options**
 
@@ -140,6 +158,19 @@ Only `scenes` and each scene's `narration` are required.
 | `checklist` | `items` (1-5 texts, up to 12 characters each), `checked` (how many get ticked) |
 | `bar_chart` | `values` (2-5 numbers, 0-1), `labels` |
 | `arrow` | `direction` (`up`, `down`, `left`, `right`), `color` |
+
+### Rooms and movement
+
+Indoor settings share one perspective room: back wall, side walls and a floor
+whose boards run to a vanishing point. The figure has a depth in that room, so
+with `"move": "approach"` it walks towards the camera and grows as it comes.
+When two neighbouring scenes have different settings, the figure walks out of
+one and into the next, so the slide reads as going from room to room.
+
+This is 2.5D, not a 3D engine. Furniture is flat front views against the back
+wall and the figure is always drawn facing you, or turned a little to walk.
+New settings go in `stickvid/rooms.py`: write a draw function and add it to
+`_SETTINGS`.
 
 ### Hitting a target length
 
@@ -201,13 +232,15 @@ stickvid/
                bar_chart, arrow (+ zzz, backdrop)
   camera.py    Camera, CameraRig (zoom-in, shake), slide_transition
   video.py     VideoWriter: pipes raw frames into ffmpeg
+  rooms.py     settings: perspective rooms, a park, and the depth projection
+  fonts/       Poppins and Patrick Hand (SIL Open Font License)
   spec.py      JSON video format: loading and validation
   tts.py       edge-tts narration with per-word timings (cached)
-  captions.py  word-by-word burned-in captions
+  captions.py  burned-in captions with the spoken word picked out
   audio.py     whoosh synthesis, narration + music mix
   director.py  spec -> scenes -> timeline -> finished MP4
 render_video.py      render a video from a JSON file
-videos/pomodoro.json example: 40 seconds on the Pomodoro technique
+videos/*.json        example videos; videos/SOURCES.md lists their sources
 make_test_video.py   the hand-built 10-second demo of the Python API
 make_showcase.py     reference sheets
 ```
@@ -282,5 +315,8 @@ sweat...) that blends smoothly between any two expressions.
 - Frames are drawn at 2x and scaled down for anti-aliasing (`config.SSAA`).
 - Output is H.264 / yuv420p / faststart, with AAC audio for JSON videos. The
   hand-built test video is silent.
-- Text uses DejaVu Sans Bold or Arial Bold if found, otherwise Pillow's
-  built-in font. Add your own font path to `_FONT_CANDIDATES` in `canvas.py`.
+- Text uses the two bundled fonts: Poppins for captions and labels, Patrick
+  Hand for the keyword notes. To change them, edit `_FONT_CANDIDATES` in
+  `canvas.py`.
+- The figure's jumper and hair colours are `StickFigure(shirt=..., hair=...)`;
+  pass `None` for either to get the bare stick figure back.

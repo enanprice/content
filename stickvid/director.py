@@ -1,7 +1,7 @@
 """Director: turns a validated spec into a finished video.
 
 Pipeline
-    1. narration  each scene's text -> speech; the audio length sets the
+    1. narration  each scene's text -> speech; the speech length sets the
                   scene length
     2. timeline   scenes are laid end to end; captions get absolute times
     3. frames     every frame is drawn, transitions blended, captions burned in
@@ -9,10 +9,14 @@ Pipeline
 
 Every scene uses the same layout, all inside the safe zone:
 
-    y  300-520    keyword text
-    y  640-1000   figure on the left, prop on the right
-    y 1215        floor line
-    y 1280-1410   captions
+    y  330-460    keyword, as a handwritten note taped to the wall
+    y  640-1000   figure on the left, prop on a pale card on the right
+    y 1215        front of the floor, where the figure stands
+    y 1340-1430   captions
+
+When two neighbouring scenes are in different settings, the figure walks
+out of the first and into the second, so a slide reads as moving between
+rooms.
 """
 
 import math
@@ -20,7 +24,7 @@ import os
 import re
 from dataclasses import replace
 
-from . import config, props, tts
+from . import config, props, rooms, tts
 from .audio import Clip, make_whoosh, mux
 from .camera import CameraRig, slide_transition
 from .canvas import Canvas, _font, draw_safe_guides
@@ -28,6 +32,7 @@ from .captions import Captions
 from .easing import (ease_in_out_cubic, ease_in_out_sine, ease_out_back, ease_out_cubic,
                      progress)
 from .figure import StickFigure
+from .timeline import Track
 from .video import VideoWriter
 
 LEAD = 0.30            # silence before a scene's narration (covers the slide-in)
@@ -35,16 +40,12 @@ TAIL = 0.35            # breathing room after it
 TRANSITION = 0.40      # slide length, centred on the scene boundary
 WHOOSH_VOLUME = 0.30
 
-FIG_X, GROUND, FIG_SCALE = 330, 1215, 0.78
+FIG_X, FIG_SCALE = 330, 0.78
 PROP_X, PROP_Y = 765, 830
-KEYWORD_Y = 410
-KEYWORD_SIZE = 116
-
-# (wall, floor) pairs used in rotation when a scene sets no background.
-PALETTE = [((226, 228, 247), (200, 204, 232)), ((255, 243, 214), (240, 219, 178)),
-           ((222, 242, 230), (190, 220, 202)), ((252, 228, 226), (236, 200, 198)),
-           ((224, 240, 250), (192, 216, 234))]
+KEYWORD_Y = 395
+KEYWORD_SIZE = 72
 ACCENTS = [config.RED, config.BLUE, config.GREEN, config.ORANGE, config.PURPLE]
+WIDE_PROPS = ("checklist", "bar_chart")
 
 
 # ---------------------------------------------------------------------------
@@ -93,7 +94,11 @@ def _draw_prop(c, prop, s, p, t, fig):
 # one scene
 # ---------------------------------------------------------------------------
 class SceneClip:
-    def __init__(self, scene, index, narration):
+    def __init__(self, scene, index, narration, enters=False, exits=False):
+        """
+        enters  the previous scene was somewhere else: walk in from the left
+        exits   the next scene is somewhere else: walk off to the right
+        """
         self.scene = scene
         self.index = index
         self.narration = narration
@@ -106,34 +111,57 @@ class SceneClip:
         # rather than the raw file length (the silent tail just overlaps the
         # next scene).
         self.duration = min(LEAD + narration.duration, self.speech_end + 0.1) + TAIL
-        self.wall, self.floor = PALETTE[index % len(PALETTE)]
-        if scene["background"]:
-            self.wall = scene["background"]
-            self.floor = tuple(int(v * 0.9) for v in self.wall)
         self.keyword_at = self._keyword_time()
+        self._background = None                       # drawn once, on first use
 
-        pose, expression = scene["pose"], scene["expression"]
-        # Start idle and snap into the pose as the scene arrives. Sleeping
+        pose, expression, move = scene["pose"], scene["expression"], scene["move"]
+        lying = pose == "sleeping"
+        walks_in = enters and not lying and move != "approach"
+        home_x = FIG_X + (150 if lying else 0)        # a lying figure is wide: keep its head in the safe zone
+
+        # Start idle and settle into the pose as the scene arrives. Sleeping
         # starts lying down (blending from standing would look like a fall).
-        # A lying figure is wide, so it moves right to keep its head in the safe zone.
-        fig = self.fig = StickFigure(FIG_X + (150 if pose == "sleeping" else 0), GROUND, FIG_SCALE,
-                                     pose=pose if pose == "sleeping" else "idle")
+        fig = self.fig = StickFigure(-170 if walks_in else home_x, rooms.FRONT_Y, FIG_SCALE,
+                                     pose=pose if lying else "idle")
+        # Depth in the room: 0 = front, 1 = back wall. The stage hook turns
+        # (x, depth) into a screen position and size every frame.
+        self.depth = Track(0.0)
+        fig.stage = self._stage
+
+        settle = 0.15
+        if walks_in:
+            fig.walk_to(home_x, -TRANSITION / 2, 0.85)
+            settle = 0.7
+        if move == "approach" and not lying:
+            self.depth = Track(0.9).to(0.0, at=0.0, duration=1.6, ease=ease_in_out_sine)
+            fig.march(0.0, 1.6)
+            settle = 1.3
+        elif move == "pace" and not lying and self.duration > 4.2:
+            fig.walk_to(home_x + 170, settle + 0.6, settle + 1.7)
+            fig.walk_to(home_x, self.duration - 2.0, self.duration - 0.9)
+
         if pose == "walking":
-            fig.walk_to(FIG_X, 0.0, self.duration + 1.0)          # walk on the spot
-        elif pose != "sleeping":
-            fig.pose_to(pose, at=0.15, duration=0.45, ease=ease_out_cubic)
+            fig.walk_to(home_x, settle, self.duration + 1.0)       # walk on the spot
+        elif not lying:
+            fig.pose_to(pose, at=settle, duration=0.45, ease=ease_out_cubic)
         fig.expression_to(expression, at=0.15, duration=0.3)
         if pose not in ("sleeping", "facepalm") and expression != "asleep":
             fig.talk(self.speech_start, self.speech_end)          # mouth moves with the voice
         if scene["prop"]:
-            fig.look_to((0.8, -0.1), at=0.45)                     # glance at the prop...
-            fig.look_to((0.0, 0.0), at=1.3)                       # ...then back to the viewer
+            fig.look_to((0.8, -0.1), at=settle + 0.3)             # glance at the prop...
+            fig.look_to((0.0, 0.0), at=settle + 1.15)             # ...then back to the viewer
+        if exits and not lying:
+            fig.walk_to(home_x + 430, self.speech_end + 0.12, self.duration + TRANSITION / 2 + 0.1)
 
         self.cam = CameraRig()
         if scene["camera"] == "zoom_in":
             self.cam.zoom_to(1.1, at=0.2, duration=max(self.duration - 0.2, 0.5), ease=ease_in_out_sine)
         elif scene["camera"] == "shake":
             self.cam.shake(at=self.keyword_at, duration=0.4, amplitude=14)
+
+    def _stage(self, x, t):
+        sx, ground_y, k = rooms.project(x, self.depth.at(t))
+        return sx, ground_y, FIG_SCALE * k
 
     def _keyword_time(self):
         """The keyword appears when its first word is spoken (or as speech starts)."""
@@ -146,33 +174,60 @@ class SceneClip:
         return self.speech_start
 
     def _draw_keyword(self, c, t):
+        """The keyword as a handwritten note taped to the wall."""
         text = self.scene["keyword"]
         pop = ease_out_back(progress(t, self.keyword_at, self.keyword_at + 0.3))
-        if not text or pop <= 0.02:
+        if not text or pop <= 0.05:
             return
-        max_width = config.SAFE_BOX[2] - config.SAFE_BOX[0] - 60
-        width = _font(KEYWORD_SIZE).getlength(text)
-        size = KEYWORD_SIZE * min(1.0, max_width / width) * pop
-        width = min(width, max_width) * pop
-        c.text((config.WIDTH / 2, KEYWORD_Y), text, size, config.INK)
-        bar_y = KEYWORD_Y + size * 0.62
-        c.line((config.WIDTH / 2 - width * 0.3, bar_y), (config.WIDTH / 2 + width * 0.3, bar_y),
-               ACCENTS[self.index % len(ACCENTS)], 14 * pop)
+        size = KEYWORD_SIZE
+        width = _font(size, "hand").getlength(text)
+        if width > 760:
+            size, width = size * 760 / width, 760
+        size, width = size * pop, width * pop
+        w, h = width + 90 * pop, size * 1.6
+        tile = c.sub(w + 40, h + 60)
+        cx, cy = (w + 40) / 2, (h + 60) / 2 + 6
+        tile.rect((cx - w / 2 + 6, cy - h / 2 + 8, cx + w / 2 + 6, cy + h / 2 + 8), fill=(0, 0, 0, 40), radius=6)
+        tile.rect((cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), fill=(255, 250, 226),
+                  outline=(226, 214, 176), width=3, radius=6)
+        tile.text((cx, cy - size * 0.1), text, size, (52, 54, 66), font="hand")
+        # A slightly wobbly pen underline.
+        line = [(cx + width * 0.42 * u, cy + size * 0.52 + 2.5 * pop * math.sin(u * 5 + self.index))
+                for u in (i / 10 - 1 for i in range(21))]
+        tile.polyline(line, ACCENTS[self.index % len(ACCENTS)], 5 * pop)
+        tile.rect((cx - 44 * pop, cy - h / 2 - 15 * pop, cx + 44 * pop, cy - h / 2 + 13 * pop),
+                  fill=(232, 222, 188, 215))                                       # tape
+        c.paste(tile, (config.WIDTH / 2, KEYWORD_Y), angle=-2.5)
+
+    def _backdrop(self):
+        """The setting, drawn once and copied for every frame."""
+        if self._background is None:
+            scene = self.scene
+            canvas = Canvas(bg=rooms.colors(scene["setting"], self.index, scene["background"], scene["time"])[0])
+            _, self.floor = rooms.draw(canvas, scene["setting"], self.index, scene["background"], scene["time"])
+            self._background = canvas
+        return self._background.copy()
 
     def render(self, t):
         """Final frame for scene-local time t (may run slightly outside 0..duration)."""
         fig = self.fig.update(t)
-        c = Canvas(bg=self.wall)
-        props.backdrop(c, GROUND, self.floor)
+        c = self._backdrop()
         self._draw_keyword(c, t)
 
-        if self.scene["prop"]:
+        prop = self.scene["prop"]
+        if prop:
             pop = ease_out_back(progress(t, 0.25, 0.65))
-            if pop > 0.02:
+            if pop > 0.05:
+                if self.scene["setting"] != "plain" and prop["type"] != "thought_bubble":
+                    # A pale card lifts the prop off the room's furniture.
+                    half = (240 if prop["type"] in WIDE_PROPS else 205) * pop
+                    card = c.sub(half * 2, half * 2)
+                    card.rect((0, 0, half * 2, half * 2), fill=(255, 255, 255, 175), radius=56 * pop)
+                    c.paste(card, (PROP_X, PROP_Y))
                 p = progress(t, self.speech_start, self.speech_end)
-                _draw_prop(c, self.scene["prop"], pop, p, t, fig)
+                _draw_prop(c, prop, pop, p, t, fig)
 
-        fig.draw_shadow(c, tuple(int(v * 0.9) for v in self.floor))
+        fig.draw_shadow(c, tuple(int(v * 0.88) for v in self.floor))
         fig.draw(c)
         if self.scene["pose"] == "sleeping":
             head = fig.joints["head"]
@@ -189,14 +244,18 @@ class Video:
         self.cache_dir = cache_dir
         self.clips, self.starts = [], []
         cursor = 0.0
-        for i, scene in enumerate(spec["scenes"]):
+        scenes = spec["scenes"]
+        place = [(sc["setting"], sc["time"]) for sc in scenes]
+        for i, scene in enumerate(scenes):
             if use_tts:
                 log(f"  narration {i + 1}/{len(spec['scenes'])}...")
                 narration = tts.synthesize(scene["narration"], spec["voice"], spec["rate"],
                                            os.path.join(cache_dir, "tts"))
             else:
                 narration = tts.estimate(scene["narration"])
-            clip = SceneClip(scene, i, narration)
+            clip = SceneClip(scene, i, narration,
+                             enters=i > 0 and place[i - 1] != place[i],
+                             exits=i + 1 < len(scenes) and place[i + 1] != place[i])
             self.clips.append(clip)
             self.starts.append(cursor)
             cursor += clip.duration
@@ -215,7 +274,7 @@ class Video:
         lines = []
         for i, (clip, start) in enumerate(zip(self.clips, self.starts)):
             lines.append(f"  scene {i + 1}: {start:5.1f}s -> {start + clip.duration:5.1f}s "
-                         f"({clip.duration:4.1f}s)  {clip.scene['narration'][:48]}")
+                         f"({clip.duration:4.1f}s)  {clip.scene['setting']:<12}{clip.scene['narration'][:40]}")
         lines.append(f"  total: {self.duration:.1f}s")
         return "\n".join(lines)
 

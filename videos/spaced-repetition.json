@@ -1,0 +1,93 @@
+{
+  "title": "Why cramming is slow",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., & Rohrer, D. (2006). Distributed practice in verbal recall tasks: A review and quantitative synthesis. Psychological Bulletin, 132(3), 354-380.",
+    "finding": "A review pooling 317 experiments found that spreading study over separate sessions led to better later recall than the same amount of study in one block.",
+    "evidence": "strong",
+    "caveat": "Most of the experiments used simple verbal material such as word lists and facts. The best gap depends on how far away the test is, so 'two days' in the script is a reasonable example, not a magic number.",
+    "link": "https://doi.org/10.1037/0033-2909.132.3.354"
+  },
+  "scenes": [
+    {
+      "narration": "Revising a topic once, for hours, is one of the slowest ways to learn it.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": {
+        "type": "clock",
+        "time": 9,
+        "spin": 0.5
+      },
+      "keyword": "One long session?",
+      "setting": "desk",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "It's called cramming. It feels productive. But most of it fades within days.",
+      "pose": "shrug",
+      "expression": "tired",
+      "prop": {
+        "type": "battery",
+        "from": 0.9,
+        "level": 0.15
+      },
+      "keyword": "Cramming",
+      "setting": "desk"
+    },
+    {
+      "narration": "In 2006, researchers pooled more than three hundred experiments on this.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.4,
+          0.6,
+          0.8,
+          0.95
+        ]
+      },
+      "keyword": "300+ experiments",
+      "setting": "library"
+    },
+    {
+      "narration": "Splitting the same study time across separate days beat doing it all at once.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Monday",
+          "Wednesday",
+          "Saturday"
+        ],
+        "checked": 3
+      },
+      "keyword": "Same time, split up",
+      "setting": "library"
+    },
+    {
+      "narration": "The gaps matter. You forget a little, then pull it back. That makes it stick.",
+      "pose": "idle",
+      "expression": "neutral",
+      "prop": "brain",
+      "keyword": "Forget, then recall",
+      "setting": "library",
+      "move": "pace"
+    },
+    {
+      "narration": "Try it today. Take one topic. Do twenty minutes now. Then book ten minutes, two days from now.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "clock",
+        "time": 4,
+        "spin": 0.05
+      },
+      "keyword": "20 now, 10 later",
+      "setting": "desk"
+    }
+  ]
+}

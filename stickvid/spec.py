@@ -16,7 +16,10 @@ A spec looks like this (only "scenes" and each scene's "narration" are required)
           "pose": "talking",
           "expression": "happy",
           "prop": "clock",                       # or {"type": "battery", "level": 0.9}
-          "keyword": "ON-SCREEN TEXT",
+          "keyword": "On-screen note",
+          "setting": "bedroom",                  # room drawn behind the scene
+          "time": "night",
+          "move": "approach",                    # walk up from the back of the room
           "camera": "zoom_in",
           "background": "#E2E4F7"
         }
@@ -34,6 +37,7 @@ import os
 import re
 
 from .figure import EXPRESSIONS, POSES
+from .rooms import SETTINGS, TIMES
 
 DEFAULT_VOICE = "en-GB-RyanNeural"
 UK_VOICES = ["en-GB-RyanNeural", "en-GB-SoniaNeural", "en-GB-LibbyNeural",
@@ -41,6 +45,8 @@ UK_VOICES = ["en-GB-RyanNeural", "en-GB-SoniaNeural", "en-GB-LibbyNeural",
 
 TRANSITIONS = ["slide_left", "slide_right", "slide_up", "slide_down", "cut"]
 CAMERAS = ["none", "zoom_in", "shake"]
+MOVES = ["stay", "approach", "pace"]
+EVIDENCE = ["strong", "moderate", "mixed"]
 ARROW_DIRECTIONS = ["up", "down", "left", "right"]
 
 MAX_NARRATION_CHARS = 400
@@ -237,8 +243,10 @@ def _check_prop(ck, path, value):
 # ---------------------------------------------------------------------------
 # the validator
 # ---------------------------------------------------------------------------
-_TOP_FIELDS = {"title", "voice", "rate", "transition", "whoosh", "music", "captions", "scenes"}
-_SCENE_FIELDS = {"narration", "pose", "expression", "prop", "keyword", "camera", "background"}
+_TOP_FIELDS = {"title", "voice", "rate", "transition", "whoosh", "music", "captions", "source", "scenes"}
+_SCENE_FIELDS = {"narration", "pose", "expression", "prop", "keyword", "camera", "background",
+                 "setting", "time", "move"}
+_SOURCE_FIELDS = {"citation", "finding", "evidence", "caveat", "link"}
 _MUSIC_FIELDS = {"path", "volume"}
 _CAPTION_FIELDS = {"enabled", "max_words", "uppercase", "highlight"}
 
@@ -256,8 +264,8 @@ def validate(data, base_dir=".", source="spec"):
 
     spec = {
         "title": "", "voice": DEFAULT_VOICE, "rate": "+0%", "transition": "slide_left",
-        "whoosh": True, "music": None, "scenes": [],
-        "captions": {"enabled": True, "max_words": 3, "uppercase": True, "highlight": (255, 221, 0)},
+        "whoosh": True, "music": None, "source": None, "scenes": [],
+        "captions": {"enabled": True, "max_words": 4, "uppercase": False, "highlight": (255, 221, 120)},
     }
 
     if "title" in data:
@@ -326,6 +334,24 @@ def validate(data, base_dir=".", source="spec"):
             if "highlight" in captions:
                 out["highlight"] = ck.color("captions.highlight", captions["highlight"]) or out["highlight"]
 
+    # --- source: where the video's claims come from. Not shown on screen;
+    # it travels with the script so the claims can be checked. ---
+    cited = data.get("source")
+    if cited is not None:
+        if not isinstance(cited, dict):
+            ck.err("source", f"must be an object, got {_kind(cited)}.")
+        else:
+            ck.unknown_keys("source", cited, _SOURCE_FIELDS)
+            out = {"citation": "", "finding": "", "evidence": None, "caveat": "", "link": ""}
+            if "citation" not in cited:
+                ck.err("source.citation", "is required: authors, year, title and journal.")
+            for key in ("citation", "finding", "caveat", "link"):
+                if key in cited:
+                    out[key] = ck.text(f"source.{key}", cited[key], max_len=700) or ""
+            if "evidence" in cited:
+                out["evidence"] = ck.choice("source.evidence", cited["evidence"], EVIDENCE)
+            spec["source"] = out
+
     # --- scenes ---
     scenes = data.get("scenes")
     if scenes is None:
@@ -342,7 +368,8 @@ def validate(data, base_dir=".", source="spec"):
                 continue
             ck.unknown_keys(path, scene, _SCENE_FIELDS)
             out = {"narration": "", "pose": "talking", "expression": "neutral", "prop": None,
-                   "keyword": None, "camera": "none", "background": None}
+                   "keyword": None, "camera": "none", "background": None,
+                   "setting": "plain", "time": "day", "move": "stay"}
             if "narration" not in scene:
                 ck.err(f"{path}.narration", "is required: the text the voice will read.")
             else:
@@ -362,6 +389,12 @@ def validate(data, base_dir=".", source="spec"):
                 out["keyword"] = ck.text(f"{path}.keyword", scene["keyword"], max_len=MAX_KEYWORD_CHARS)
             if "camera" in scene:
                 out["camera"] = ck.choice(f"{path}.camera", scene["camera"], CAMERAS) or "none"
+            if "setting" in scene:
+                out["setting"] = ck.choice(f"{path}.setting", scene["setting"], SETTINGS) or "plain"
+            if "time" in scene:
+                out["time"] = ck.choice(f"{path}.time", scene["time"], TIMES) or "day"
+            if "move" in scene:
+                out["move"] = ck.choice(f"{path}.move", scene["move"], MOVES) or "stay"
             if scene.get("background") is not None:
                 out["background"] = ck.color(f"{path}.background", scene["background"])
             spec["scenes"].append(out)

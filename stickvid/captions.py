@@ -1,28 +1,31 @@
-"""Burned-in captions: a few words at a time, current word highlighted.
+"""Burned-in captions: a short phrase at a time, the spoken word picked out.
 
 Captions are drawn on the FINAL frame (after camera and transitions), so
-they stay rock-steady while the scene behind them zooms, shakes or slides.
+they stay steady while the scene behind them zooms, shakes or slides.
 
-Style: heavy white text with a thick black outline (readable on any
-background), the word being spoken in the highlight colour with a small
-pop. They sit in the middle-lower part of the frame, above the bottom
-400px that app UI covers.
+Style: sentence-case text on a soft dark strip. Words already spoken are
+white, the word being spoken takes the highlight colour, and words still to
+come are dimmed - so the eye is led along without anything jumping about.
+They sit in the middle-lower part of the frame, above the bottom 400px that
+app UI covers.
 """
 
 import bisect
 from dataclasses import dataclass
 
-from PIL import ImageDraw
+from PIL import Image, ImageDraw
 
 from . import config
 from .canvas import _font
-from .easing import ease_out_back, progress
 
-CAPTION_Y = 1345                 # vertical centre of the caption line
-CAPTION_SIZE = 96                # px; shrinks automatically for long chunks
-MAX_WIDTH = config.SAFE_BOX[2] - config.SAFE_BOX[0] - 40
-LINGER = 0.35                    # seconds a chunk stays after its last word
-_BREAK_AFTER = ".?!…,;:"         # punctuation that ends a chunk early
+CAPTION_Y = 1385                 # vertical centre of the caption strip
+CAPTION_SIZE = 56                # px; shrinks automatically for long phrases
+PAD_X, PAD_Y = 30, 18            # strip padding around the text
+MAX_WIDTH = config.SAFE_BOX[2] - config.SAFE_BOX[0] - 2 * PAD_X - 20
+LINGER = 0.35                    # seconds a phrase stays after its last word
+STRIP = (16, 18, 28, 150)        # translucent dark background
+UPCOMING_ALPHA = 130             # opacity of words not yet spoken
+_BREAK_AFTER = ".?!…,;:"         # punctuation that ends a phrase early
 
 
 @dataclass
@@ -33,13 +36,12 @@ class _Chunk:
 
 
 class Captions:
-    def __init__(self, words, max_words=3, uppercase=True, highlight=(255, 221, 0),
-                 color=config.WHITE, outline=(0, 0, 0), max_chars=18):
+    def __init__(self, words, max_words=4, uppercase=False, highlight=(255, 221, 120),
+                 color=config.WHITE, max_chars=26):
         """words: every spoken word of the video, in order, with absolute times."""
         self.uppercase = uppercase
         self.highlight = highlight
         self.color = color
-        self.outline = outline
         self.chunks = self._chunk(words, max_words, max_chars)
         self._starts = [c.start for c in self.chunks]
 
@@ -47,7 +49,7 @@ class Captions:
     def _chunk(words, max_words, max_chars):
         """Group words into short on-screen phrases."""
         groups, current = [], []
-        for i, word in enumerate(words):
+        for word in words:
             too_long = current and sum(len(w.text) + 1 for w in current) + len(word.text) > max_chars
             paused = current and word.start - current[-1].end > 0.45     # audible gap
             if current and (len(current) >= max_words or too_long or paused):
@@ -64,7 +66,7 @@ class Captions:
         for i, group in enumerate(groups):
             end = group[-1].end + LINGER
             if i + 1 < len(groups):
-                end = min(end, groups[i + 1][0].start)     # never overlap the next chunk
+                end = min(end, groups[i + 1][0].start)     # never overlap the next phrase
             chunks.append(_Chunk(group, group[0].start - 0.04, end))
         return chunks
 
@@ -76,11 +78,9 @@ class Captions:
         chunk = self.chunks[i]
         texts = [w.text.upper() if self.uppercase else w.text for w in chunk.words]
 
-        # Fit the line to the safe width.
         def measure(size):
             font = _font(size)
-            # The outline eats into the gap between words, so widen it by the stroke.
-            space = font.getlength(" ") + 2 * size * 0.11
+            space = font.getlength(" ")
             widths = [font.getlength(s) for s in texts]
             return font, space, widths, sum(widths) + space * (len(texts) - 1)
 
@@ -93,20 +93,20 @@ class Captions:
         # The active word is the last one whose start time has passed.
         active = max((k for k, w in enumerate(chunk.words) if w.start <= t + 0.02), default=0)
 
-        d = ImageDraw.Draw(frame)
-        stroke = max(4, round(size * 0.11))
-        x = config.WIDTH / 2 - total / 2
-        centres = []
-        for s, w in zip(texts, widths):
-            centres.append(x + w / 2)
-            x += w + space
-        # Inactive words first so the popped active word overlaps its neighbours cleanly.
-        for k, s in enumerate(texts):
-            if k != active:
-                d.text((centres[k], CAPTION_Y), s, font=font, fill=self.color, anchor="mm",
-                       stroke_width=stroke, stroke_fill=self.outline)
-        pop = 1.0 + 0.09 * ease_out_back(progress(t, chunk.words[active].start, chunk.words[active].start + 0.12))
-        big = _font(round(size * pop))
-        d.text((centres[active], CAPTION_Y), texts[active], font=big, fill=self.highlight, anchor="mm",
-               stroke_width=max(4, round(size * pop * 0.11)), stroke_fill=self.outline)
+        # Draw strip + text on a transparent layer, then blend it onto the frame.
+        w, h = round(total + 2 * PAD_X), round(size * 1.3 + 2 * PAD_Y)
+        layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(layer)
+        d.rounded_rectangle((0, 0, w - 1, h - 1), radius=h * 0.3, fill=STRIP)
+        x = PAD_X
+        for k, (s, word_w) in enumerate(zip(texts, widths)):
+            if k < active:
+                fill = self.color + (255,)
+            elif k == active:
+                fill = self.highlight + (255,)
+            else:
+                fill = self.color + (UPCOMING_ALPHA,)
+            d.text((x, h / 2), s, font=font, fill=fill, anchor="lm")
+            x += word_w + space
+        frame.paste(layer, (round(config.WIDTH / 2 - w / 2), round(CAPTION_Y - h / 2)), layer)
         return frame

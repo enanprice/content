@@ -1,0 +1,100 @@
+{
+  "title": "More time doesn't mean better work",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Ariely, D., & Wertenbroch, K. (2002). Procrastination, deadlines, and performance: Self-control by precommitment. Psychological Science, 13(3), 219-224.",
+    "finding": "In a proofreading experiment, people given evenly spaced deadlines found the most errors and were least late; people with one final deadline did worst; people who set their own deadlines came in between.",
+    "evidence": "moderate",
+    "caveat": "This is one well-known study with small groups of adults, not a body of repeated findings. One of its authors, Dan Ariely, has since had other papers retracted over data problems; I am not aware of concerns raised about this paper, but check before publishing.",
+    "link": "https://doi.org/10.1111/1467-9280.00441"
+  },
+  "scenes": [
+    {
+      "narration": "Having more time doesn't get you better work.",
+      "pose": "shrug",
+      "expression": "smug",
+      "prop": {
+        "type": "clock",
+        "time": 3,
+        "spin": 0.4
+      },
+      "keyword": "More time?",
+      "setting": "living_room",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "A deadline that's weeks away sounds great. Loads of time. No pressure.",
+      "pose": "idle",
+      "expression": "happy",
+      "prop": "phone",
+      "keyword": "Weeks away",
+      "setting": "living_room"
+    },
+    {
+      "narration": "In 2002, researchers gave people three pieces of work. Some had one deadline at the end. Others had three, spaced out.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Part one",
+          "Part two",
+          "Part three"
+        ],
+        "checked": 3
+      },
+      "keyword": "One deadline or three?",
+      "setting": "classroom"
+    },
+    {
+      "narration": "The spaced-out group did the best work. The one-big-deadline group did the worst.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.85,
+          0.6,
+          0.4
+        ],
+        "labels": [
+          "Spaced",
+          "Own",
+          "End"
+        ]
+      },
+      "keyword": "Spaced won",
+      "setting": "classroom"
+    },
+    {
+      "narration": "People who set their own deadlines landed in between. It helped, but not as much.",
+      "pose": "facepalm",
+      "expression": "guilty",
+      "prop": {
+        "type": "arrow",
+        "direction": "right",
+        "color": "#F59E42"
+      },
+      "keyword": "Your own deadlines",
+      "setting": "classroom"
+    },
+    {
+      "narration": "Today, split one piece of coursework into three parts. Give each a date. Tell someone who'll ask.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Three parts",
+          "Three dates",
+          "Tell someone"
+        ],
+        "checked": 3
+      },
+      "keyword": "Three parts, three dates",
+      "setting": "desk"
+    }
+  ]
+}

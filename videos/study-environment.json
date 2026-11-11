@@ -1,0 +1,104 @@
+{
+  "title": "Should you always revise in the same place?",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Smith, S. M., Glenberg, A., & Bjork, R. A. (1978). Environmental context and human memory. Memory & Cognition, 6(4), 342-353. Meta-analysis: Smith, S. M., & Vela, E. (2001). Environmental context-dependent memory: A review and meta-analysis. Psychonomic Bulletin & Review, 8(2), 203-220.",
+    "finding": "Students who studied a word list in two different rooms recalled more of it when tested in a new room than students who studied it twice in the same room.",
+    "evidence": "mixed",
+    "caveat": "The 2001 meta-analysis found that place-dependent memory effects are real on average but modest, and individual studies often fail to find them. The original task was memorising word lists, not revising a subject. The script says the effect is small and unreliable.",
+    "link": "https://doi.org/10.3758/BF03197465"
+  },
+  "scenes": [
+    {
+      "narration": "Always revising in the same spot might not be the best idea.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": "book",
+      "keyword": "Same spot?",
+      "setting": "desk",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "The usual advice is one desk, one routine.",
+      "pose": "idle",
+      "expression": "neutral",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "One desk",
+          "One routine"
+        ],
+        "checked": 2
+      },
+      "keyword": "The usual advice",
+      "setting": "desk"
+    },
+    {
+      "narration": "In 1978, psychologists had students learn a word list twice. Some in one room. Others in two different rooms.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "arrow",
+        "direction": "right",
+        "color": "#4C8DF5"
+      },
+      "keyword": "Two rooms",
+      "setting": "living_room"
+    },
+    {
+      "narration": "Tested somewhere new, the two-room group remembered more.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.45,
+          0.7
+        ],
+        "labels": [
+          "One",
+          "Two"
+        ]
+      },
+      "keyword": "Two rooms won",
+      "setting": "classroom"
+    },
+    {
+      "narration": "One idea: memories get tied to where you learned them. And your exam is somewhere else.",
+      "pose": "idle",
+      "expression": "neutral",
+      "prop": "brain",
+      "keyword": "Tied to the place",
+      "setting": "classroom",
+      "move": "pace"
+    },
+    {
+      "narration": "But be honest about this one. The effect is small, and it doesn't always show up.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "?"
+      },
+      "keyword": "Small effect",
+      "setting": "park"
+    },
+    {
+      "narration": "Today, revise one topic at your desk. Later, go over it in a different room.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Desk first",
+          "New room"
+        ],
+        "checked": 2
+      },
+      "keyword": "Then a different room",
+      "setting": "bedroom"
+    }
+  ]
+}

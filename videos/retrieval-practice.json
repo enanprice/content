@@ -1,0 +1,92 @@
+{
+  "title": "Rereading is not revising",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Roediger, H. L., & Karpicke, J. D. (2006). Test-enhanced learning: Taking memory tests improves long-term retention. Psychological Science, 17(3), 249-255.",
+    "finding": "Students who read a passage and then tested themselves recalled more of it two days and one week later than students who reread it, even though the rereaders did slightly better after five minutes.",
+    "evidence": "strong",
+    "caveat": "The original study used university students and prose passages. The effect has since been repeated many times with other ages and materials, which is why it is rated strong.",
+    "link": "https://doi.org/10.1111/j.1467-9280.2006.01693.x"
+  },
+  "scenes": [
+    {
+      "narration": "Rereading your notes feels like revision. Mostly, it isn't.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": "book",
+      "keyword": "Rereading",
+      "setting": "bedroom",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "The page looks familiar. So you feel like you know it. Familiar is not the same as remembered.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "?"
+      },
+      "keyword": "Familiar is not known",
+      "setting": "bedroom"
+    },
+    {
+      "narration": "In 2006, two psychologists had students either reread a passage, or test themselves on it.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Reread",
+          "Self-test"
+        ],
+        "checked": 0
+      },
+      "keyword": "Reread or test?",
+      "setting": "classroom"
+    },
+    {
+      "narration": "Five minutes later, the rereaders were ahead. A week later, the self-testers remembered more.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.42,
+          0.56
+        ],
+        "labels": [
+          "Reread",
+          "Test"
+        ]
+      },
+      "keyword": "One week later",
+      "setting": "classroom"
+    },
+    {
+      "narration": "Pulling a fact out of your head is what strengthens it.",
+      "pose": "idle",
+      "expression": "happy",
+      "prop": "brain",
+      "keyword": "Pull it out",
+      "setting": "classroom"
+    },
+    {
+      "narration": "Today, close your book. Write down everything you remember from your last lesson. Then check what you missed.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Close book",
+          "Write it out",
+          "Check gaps"
+        ],
+        "checked": 3
+      },
+      "keyword": "Close the book",
+      "setting": "desk"
+    }
+  ]
+}

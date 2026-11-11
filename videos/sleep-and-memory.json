@@ -1,0 +1,92 @@
+{
+  "title": "The late-night revision trade-off",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Gais, S., Lucas, B., & Born, J. (2006). Sleep after learning aids memory recall. Learning & Memory, 13(3), 259-262. Wider review: Rasch, B., & Born, J. (2013). About sleep's role in memory. Physiological Reviews, 93(2), 681-766.",
+    "finding": "People who slept within a few hours of learning word material recalled more of it later than people who stayed awake that night, even after everyone had a recovery night's sleep before the test.",
+    "evidence": "moderate",
+    "caveat": "The 2006 experiments were small lab studies using word lists. The wider research consistently links sleep with memory, but that is not the same as showing a set amount of sleep adds marks in an exam. The script gives no advice on how much sleep anyone needs.",
+    "link": "https://doi.org/10.1101/lm.132106"
+  },
+  "scenes": [
+    {
+      "narration": "Staying up late to revise can cost you the very thing you stayed up for.",
+      "pose": "pointing",
+      "expression": "tired",
+      "prop": {
+        "type": "clock",
+        "time": 1,
+        "spin": 0.3
+      },
+      "keyword": "Up late revising",
+      "setting": "desk",
+      "time": "night",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "Learning doesn't stop when you close the book. Researchers think memories get strengthened while you sleep.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": "brain",
+      "keyword": "While you sleep",
+      "setting": "desk",
+      "time": "night"
+    },
+    {
+      "narration": "In a 2006 study, people learned lists of words. Some slept within a few hours. Others stayed awake all night.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Slept",
+          "Stayed up"
+        ],
+        "checked": 0
+      },
+      "keyword": "Two groups",
+      "setting": "library"
+    },
+    {
+      "narration": "Two days later, the ones who slept had remembered more. Even after everyone caught up on sleep.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.7,
+          0.5
+        ],
+        "labels": [
+          "Slept",
+          "Awake"
+        ]
+      },
+      "keyword": "Two days later",
+      "setting": "library"
+    },
+    {
+      "narration": "That was a small study. But the wider research points the same way.",
+      "pose": "idle",
+      "expression": "neutral",
+      "prop": "book",
+      "keyword": "Small study",
+      "setting": "library"
+    },
+    {
+      "narration": "Tonight, go over your hardest topic for ten minutes before bed. Then test yourself in the morning.",
+      "pose": "sleeping",
+      "expression": "asleep",
+      "prop": {
+        "type": "clock",
+        "time": 10,
+        "spin": 0.02
+      },
+      "keyword": "Ten minutes, then bed",
+      "setting": "bedroom",
+      "time": "night"
+    }
+  ]
+}

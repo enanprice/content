@@ -1,0 +1,83 @@
+{
+  "title": "Is your phone distracting you when you're not using it?",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Ward, A. F., Duke, K., Gneezy, A., & Bos, M. W. (2017). Brain drain: The mere presence of one's own smartphone reduces available cognitive capacity. Journal of the Association for Consumer Research, 2(2), 140-154. Second study cited: Stothart, C., Mitchum, A., & Yehnert, C. (2015). The attentional cost of receiving a cell phone notification. Journal of Experimental Psychology: Human Perception and Performance, 41(4), 893-897.",
+    "finding": "Ward et al. reported lower scores on thinking tests when participants' phones were on the desk rather than in another room. Stothart et al. reported that receiving a notification, without responding to it, increased errors on an attention task.",
+    "evidence": "mixed",
+    "caveat": "The 'brain drain' result is disputed: a pre-registered replication (Ruiz Pardo & Minda, 2022, Acta Psychologica) did not find it, and meta-analyses disagree about whether the effect exists and how big it is. The notification study is a single experiment. The script says this out loud.",
+    "link": "https://doi.org/10.1086/691462"
+  },
+  "scenes": [
+    {
+      "narration": "Your phone might be distracting you even when you're not touching it.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": "phone",
+      "keyword": "Not even touching it",
+      "setting": "bedroom",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "In a 2017 study, people did worse on thinking tests with their phone on the desk. Even switched off.",
+      "pose": "talking",
+      "expression": "stressed",
+      "prop": "brain",
+      "keyword": "Phone on the desk",
+      "setting": "desk"
+    },
+    {
+      "narration": "But be careful. Other researchers repeated it and often found nothing. The evidence is mixed.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "?"
+      },
+      "keyword": "Mixed evidence",
+      "setting": "desk"
+    },
+    {
+      "narration": "A separate 2015 study found that just getting a notification hurt focus. Even when people ignored it.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "arrow",
+        "direction": "down",
+        "color": "#EB5757"
+      },
+      "keyword": "Notifications",
+      "setting": "desk"
+    },
+    {
+      "narration": "So nobody can promise your phone drains your brain. But a buzzing one probably isn't helping.",
+      "pose": "idle",
+      "expression": "neutral",
+      "prop": {
+        "type": "battery",
+        "from": 0.8,
+        "level": 0.4
+      },
+      "keyword": "Probably not helping",
+      "setting": "desk"
+    },
+    {
+      "narration": "Today, for one study session, put your phone on silent in another room. See if you notice.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Silent",
+          "Other room",
+          "One session"
+        ],
+        "checked": 3
+      },
+      "keyword": "Another room",
+      "setting": "living_room"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "title": "Stop doing twenty of the same question",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Rohrer, D., & Taylor, K. (2007). The shuffling of mathematics problems improves learning. Instructional Science, 35(6), 481-498.",
+    "finding": "Students who practised different types of maths problem mixed together scored lower during practice but much higher on a test one week later than students who practised one type at a time.",
+    "evidence": "moderate",
+    "caveat": "The evidence for mixing is strongest in maths, where choosing the right method is part of the problem. Results in other subjects are less consistent, and the script says so.",
+    "link": "https://doi.org/10.1007/s11251-007-9015-8"
+  },
+  "scenes": [
+    {
+      "narration": "Doing twenty of the same question in a row feels great. It teaches you less than you think.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
+        "checked": 4
+      },
+      "keyword": "Twenty in a row",
+      "setting": "classroom",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "By question five, you're on autopilot. There's nothing left to choose.",
+      "pose": "idle",
+      "expression": "tired",
+      "prop": {
+        "type": "battery",
+        "from": 0.9,
+        "level": 0.2
+      },
+      "keyword": "Autopilot",
+      "setting": "classroom"
+    },
+    {
+      "narration": "In 2007, two researchers had students mix the question types instead.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "arrow",
+        "direction": "right",
+        "color": "#966EDC"
+      },
+      "keyword": "Mix them up",
+      "setting": "library"
+    },
+    {
+      "narration": "During practice, the mixers did worse. On a test a week later, they did much better.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.3,
+          0.8
+        ],
+        "labels": [
+          "Same",
+          "Mixed"
+        ]
+      },
+      "keyword": "A week later",
+      "setting": "library"
+    },
+    {
+      "narration": "In an exam, nobody tells you the method. Mixing makes you practise choosing.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "?"
+      },
+      "keyword": "Which method?",
+      "setting": "library"
+    },
+    {
+      "narration": "One warning. This is mainly shown in maths.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": "brain",
+      "keyword": "Mostly maths",
+      "setting": "desk"
+    },
+    {
+      "narration": "Today, pick three maths topics, shuffle the questions, and do them in random order.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Three topics",
+          "Shuffle",
+          "Random order"
+        ],
+        "checked": 3
+      },
+      "keyword": "Shuffle them",
+      "setting": "desk"
+    }
+  ]
+}

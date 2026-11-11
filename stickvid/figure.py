@@ -100,11 +100,27 @@ def walk_cycle(phase):
     )
 
 
+def march_cycle(phase):
+    """Pose for walking straight towards (or away from) the camera.
+
+    Seen front-on there is no stride to show, so each leg in turn lifts
+    with the knee turned out, and the arms swing a little.
+    """
+    swing = math.sin(2 * math.pi * phase)
+    l_lift, r_lift = max(0.0, swing), max(0.0, -swing)
+    return Pose(
+        l_thigh=-9 - 22 * l_lift, l_shin=-9 + 30 * l_lift,
+        r_thigh=9 + 22 * r_lift, r_shin=9 - 30 * r_lift,
+        l_upper=-14 - 6 * swing, l_fore=-8 - 16 * r_lift,
+        r_upper=14 - 6 * swing, r_fore=8 + 16 * l_lift,
+    )
+
+
 POSES = {
     "idle": Pose(),
     "talking": Pose(head_tilt=4, r_upper=35, r_fore=140),
     "pointing": Pose(lean=-3, r_upper=98, r_fore=98, l_upper=-40, l_fore=30),
-    "facepalm": Pose(lean=3, head_tilt=10, r_upper=115, r_fore=229),
+    "facepalm": Pose(lean=3, head_tilt=10, r_upper=112, r_fore=236),
     "shrug": Pose(head_tilt=8, shoulder_raise=1.0,
                   l_upper=-45, l_fore=-125, r_upper=45, r_fore=125),
     "sleeping": Pose(body_rot=-90, r_upper=32, r_fore=-28, l_upper=0, l_fore=0,
@@ -112,8 +128,8 @@ POSES = {
     "walking": walk_cycle(0.12),
     # Extras used by the test video
     "scrolling": Pose(head_tilt=7, r_upper=40, r_fore=135),
-    "hold_book": Pose(l_upper=-60, l_fore=25, r_upper=60, r_fore=-25),
-    "read_book": Pose(head_tilt=0, l_upper=-60, l_fore=-20, r_upper=60, r_fore=20),
+    "hold_book": Pose(l_upper=-60, l_fore=40, r_upper=60, r_fore=-40),
+    "read_book": Pose(head_tilt=0, l_upper=-60, l_fore=-5, r_upper=60, r_fore=5),
 }
 
 EXPRESSIONS = {
@@ -152,22 +168,33 @@ class StickFigure:
     FOREARM = 120
     THIGH = 150
     SHIN = 150
-    LINE = 20
+    LINE = 18
+    SHOULDER_W = 30      # half-widths: shoulders, shirt hem, hip joints
+    WAIST_W = 23
+    HIP_W = 13
+    FOOT = 30
 
     def __init__(self, x=config.WIDTH / 2, ground_y=1470, scale=1.0,
                  pose="idle", expression="neutral",
-                 color=config.INK, skin=config.WHITE, alive=True):
+                 color=config.INK, skin=config.WHITE,
+                 shirt=(222, 120, 92), hair=(74, 52, 44), alive=True):
         self.ground_y = ground_y
         self.scale = scale
         self.color = color
         self.skin = skin
+        self.shirt = shirt            # None draws a bare stick torso
+        self.hair = hair              # None draws no hair
         self.alive = alive            # automatic blinking + breathing
+        # Optional stage hook for depth: stage(x, t) -> (screen_x, ground_y, scale).
+        # A scene sets this to move the figure around a perspective room.
+        self.stage = None
 
         self._pose = Track(_pose(pose))
         self._face = Track(_face(expression))
         self._look = Track((0.0, 0.0))
         self._x = Track(float(x))
         self._walks = []              # (start, end, direction, strides_per_sec)
+        self._marches = []            # (start, end, strides_per_sec): walking towards the camera
         self._talks = []              # (start, end)
 
         self.update(0.0)
@@ -198,6 +225,12 @@ class StickFigure:
         self._walks.append((start, end, direction, strides_per_sec))
         return self
 
+    def march(self, start, end, strides_per_sec=1.8):
+        """Front-on walk cycle (no sideways travel). Pair it with a `stage`
+        hook that changes depth to walk towards or away from the camera."""
+        self._marches.append((start, end, strides_per_sec))
+        return self
+
     def talk(self, start, end):
         """Flap the mouth between `start` and `end` (combine with any pose)."""
         self._talks.append((start, end))
@@ -210,14 +243,25 @@ class StickFigure:
         self.x = self._x.at(t)
         pose = self._pose.at(t)
         face = self._face.at(t)
-        self.look = self._look.at(t)
+        look = self._look.at(t)
 
         # Blend the walk cycle in and out over 0.2s at each end of a walk.
+        # `turn` (-1..1) says how far the body has turned side-on to walk:
+        # it narrows the shoulders, points the feet and shifts the face.
+        turn = 0.0
         for start, end, direction, rate in self._walks:
             w = min(progress(t, start, start + 0.2), 1 - progress(t, end - 0.2, end))
             if w > 0:
                 cycle = walk_cycle((t - start) * rate)
                 pose = pose.lerp(cycle if direction > 0 else cycle.mirrored(), w)
+                turn += w * direction
+        for start, end, rate in self._marches:
+            w = min(progress(t, start, start + 0.2), 1 - progress(t, end - 0.2, end))
+            if w > 0:
+                pose = pose.lerp(march_cycle((t - start) * rate), w)
+        self.turn = clamp(turn, -1, 1)
+        side = abs(self.turn)
+        self.look = (look[0] * (1 - side) + self.turn * 0.9 * side, look[1] * (1 - side))
 
         if self.alive:
             # Breathing: shoulders drift up and down a couple of pixels.
@@ -235,6 +279,9 @@ class StickFigure:
             if w > 0:
                 flap = 0.15 + 0.6 * abs(math.sin((t - start) * 17)) * (0.6 + 0.4 * math.sin(t * 7.3))
                 face = face.lerp(Face(**{**face.__dict__, "mouth_open": max(face.mouth_open, flap)}), w)
+
+        if self.stage is not None:
+            self.x, self.ground_y, self.scale = self.stage(self.x, t)
 
         self.pose, self.face = pose, face
         self.joints = self._solve(pose)
@@ -255,17 +302,33 @@ class StickFigure:
         def add(a, b):
             return (a[0] + b[0], a[1] + b[1])
 
+        # Body widths shrink as the figure turns side-on.
+        narrow = 1 - 0.65 * abs(self.turn)
+        a = math.radians(p.lean)
+        across = (math.cos(a), math.sin(a))                 # unit vector along the shoulders
+
         j = {"hip": (0.0, 0.0)}
         j["neck"] = up(p.lean, self.TORSO * s)
         j["shoulder"] = add(up(p.lean, (self.TORSO - 18) * s), (0, -p.shoulder_raise * 16 * s))
         j["head"] = add(j["neck"], up(p.lean + p.head_tilt, (self.NECK + self.HEAD_R) * s))
-        for side in ("l", "r"):
-            elbow = add(j["shoulder"], down(getattr(p, side + "_upper"), self.UPPER_ARM * s))
+        for side, sign in (("l", -1), ("r", 1)):
+            sw = sign * self.SHOULDER_W * s * narrow
+            shoulder = add(j["shoulder"], (across[0] * sw, across[1] * sw))
+            j[side + "_shoulder"] = shoulder
+            ww = sign * self.WAIST_W * s * narrow
+            j[side + "_waist"] = (across[0] * ww, across[1] * ww + 6 * s)
+            elbow = add(shoulder, down(getattr(p, side + "_upper"), self.UPPER_ARM * s))
             j[side + "_elbow"] = elbow
             j[side + "_hand"] = add(elbow, down(getattr(p, side + "_fore"), self.FOREARM * s))
-            knee = down(getattr(p, side + "_thigh"), self.THIGH * s)
+            hip = (sign * self.HIP_W * s * narrow, 0.0)
+            j[side + "_hip"] = hip
+            knee = add(hip, down(getattr(p, side + "_thigh"), self.THIGH * s))
             j[side + "_knee"] = knee
-            j[side + "_foot"] = add(knee, down(getattr(p, side + "_shin"), self.SHIN * s))
+            foot = add(knee, down(getattr(p, side + "_shin"), self.SHIN * s))
+            j[side + "_foot"] = foot
+            # Feet splay slightly when facing us and point forward when walking.
+            reach = sign * 11 * (1 - abs(self.turn)) + self.turn * self.FOOT
+            j[side + "_toe"] = add(foot, (reach * s, 0.0))
 
         # Whole-body rotation about the hip (clockwise for positive angles).
         if p.body_rot:
@@ -293,14 +356,35 @@ class StickFigure:
     def draw(self, canvas):
         j, s, col = self.joints, self.scale, self.color
         lw = self.LINE * s
-        canvas.polyline([j["hip"], j["l_knee"], j["l_foot"]], col, lw)
-        canvas.polyline([j["hip"], j["r_knee"], j["r_foot"]], col, lw)
-        canvas.line(j["hip"], j["neck"], col, lw)
+        edge = lw * 0.24
+
+        # Legs and shoes.
+        for side in ("l", "r"):
+            canvas.polyline([j[side + "_hip"], j[side + "_knee"], j[side + "_foot"]], col, lw)
+            canvas.line(j[side + "_foot"], j[side + "_toe"], col, lw * 1.2)
+
+        # Torso: a jumper with an ink outline, or a plain line if shirt is None.
+        if self.shirt:
+            body = [j["l_shoulder"], j["r_shoulder"], j["r_waist"], j["l_waist"]]
+            canvas.polygon(body, fill=col, outline=col, width=lw * 1.5)
+            canvas.polygon(body, fill=self.shirt, outline=self.shirt, width=lw * 1.5 - 2 * edge)
+        else:
+            canvas.line(j["hip"], j["neck"], col, lw)
+        canvas.line(j["shoulder"], j["head"], col, lw * 0.9)             # neck
+
         canvas.circle(j["head"], self.HEAD_R * s, fill=self.skin, outline=col, width=lw * 0.8)
+        self._draw_hair(canvas)
         self._draw_face(canvas)
+
         # Arms go last so a hand can pass in front of the face (facepalm).
-        canvas.polyline([j["shoulder"], j["l_elbow"], j["l_hand"]], col, lw)
-        canvas.polyline([j["shoulder"], j["r_elbow"], j["r_hand"]], col, lw)
+        for side in ("l", "r"):
+            shoulder, elbow = j[side + "_shoulder"], j[side + "_elbow"]
+            canvas.polyline([shoulder, elbow, j[side + "_hand"]], col, lw)
+            if self.shirt:                                               # short sleeve
+                cuff = (shoulder[0] + (elbow[0] - shoulder[0]) * 0.55,
+                        shoulder[1] + (elbow[1] - shoulder[1]) * 0.55)
+                canvas.line(shoulder, cuff, col, lw * 1.5)
+                canvas.line(shoulder, cuff, self.shirt, lw * 1.5 - 2 * edge)
         self.draw_hands(canvas)
 
     def draw_hands(self, canvas):
@@ -309,23 +393,43 @@ class StickFigure:
         canvas.circle(self.joints["l_hand"], r, fill=self.color)
         canvas.circle(self.joints["r_hand"], r, fill=self.color)
 
-    def _draw_face(self, c):
-        f, p, ink = self.face, self.pose, self.color
-        R = self.HEAD_R * self.scale
-        hx, hy = self.joints["head"]
-        lx, ly = (clamp(v, -1, 1) for v in self.look)
+    def _head_space(self):
+        """Function mapping head-local (x, y) to canvas coordinates.
 
-        # Face features are laid out in head-local coordinates and rotated
-        # with the head, so tilting or lying down just works.
+        Face and hair are laid out relative to the head centre and rotated
+        with the head, so tilting or lying down just works.
+        """
+        p = self.pose
+        hx, hy = self.joints["head"]
         a = math.radians(p.lean + p.head_tilt + p.body_rot)
         ca, sa = math.cos(a), math.sin(a)
+        return lambda x, y: (hx + x * ca - y * sa, hy + x * sa + y * ca)
 
-        def W(x, y):
-            return (hx + x * ca - y * sa, hy + x * sa + y * ca)
+    def _draw_hair(self, c):
+        if not self.hair:
+            return
+        R = self.HEAD_R * self.scale
+        W = self._head_space()
+        shift = self.turn * 6                                  # hair swings a little when turned
+        # Outer edge follows the skull; inner edge is a jagged fringe.
+        outer = [(R * 1.03 * math.cos(q), R * 1.03 * math.sin(q))
+                 for q in _steps(math.radians(192 + shift), math.radians(348 + shift), 16)]
+        fringe = []
+        for i, q in enumerate(_steps(math.radians(348 + shift), math.radians(192 + shift), 8)):
+            r = R * (0.92 if i % 2 == 0 else 0.70)
+            fringe.append((r * math.cos(q), r * math.sin(q)))
+        c.polygon([W(*q) for q in outer + fringe], fill=self.hair, outline=self.color,
+                  width=max(1.5, R * 0.045))
 
-        # The whole face drifts a little in the gaze direction, which reads
-        # as the head turning.
-        ox, oy = lx * R * 0.10, ly * R * 0.07
+    def _draw_face(self, c):
+        f, ink = self.face, self.color
+        R = self.HEAD_R * self.scale
+        W = self._head_space()
+        lx, ly = (clamp(v, -1, 1) for v in self.look)
+
+        # The whole face drifts in the gaze direction (and further when the
+        # body turns to walk), which reads as the head turning.
+        ox, oy = lx * R * 0.10 + self.turn * R * 0.16, ly * R * 0.07
         thin = max(1.5, R * 0.055)
 
         # --- eyes + brows ---

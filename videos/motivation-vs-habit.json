@@ -1,0 +1,112 @@
+{
+  "title": "It doesn't take 21 days",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Lally, P., van Jaarsveld, C. H. M., Potts, H. W. W., & Wardle, J. (2010). How are habits formed: Modelling habit formation in the real world. European Journal of Social Psychology, 40(6), 998-1009.",
+    "finding": "Volunteers repeating a chosen daily behaviour took a median of 66 days for it to feel automatic, with individuals ranging from 18 to 254 days. Missing a single day did not noticeably affect the process.",
+    "evidence": "moderate",
+    "caveat": "A small study: 96 volunteers started and the 66-day figure rests on 39 of them. The longest times are projections past the 84 days the study ran. It has not been directly replicated. The '21 days' figure is usually traced to Maxwell Maltz's 1960 book Psycho-Cybernetics, which was not a habit study.",
+    "link": "https://doi.org/10.1002/ejsp.674"
+  },
+  "scenes": [
+    {
+      "narration": "It doesn't take twenty-one days to build a habit.",
+      "pose": "pointing",
+      "expression": "smug",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "21?"
+      },
+      "keyword": "21 days?",
+      "setting": "bedroom",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "That number comes from a 1960 self-help book. Not a habit study.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": "book",
+      "keyword": "A 1960 book",
+      "setting": "bedroom"
+    },
+    {
+      "narration": "In 2010, researchers in London tracked people building one new daily habit.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "Day 1",
+          "Day 2",
+          "Day 3"
+        ],
+        "checked": 3
+      },
+      "keyword": "One daily habit",
+      "setting": "park"
+    },
+    {
+      "narration": "Typically, it took sixty-six days to feel automatic. For some, eighteen. For others, months.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.15,
+          0.45,
+          1.0
+        ],
+        "labels": [
+          "18",
+          "66",
+          "254"
+        ]
+      },
+      "keyword": "66 days, typically",
+      "setting": "park",
+      "move": "pace"
+    },
+    {
+      "narration": "And missing one day didn't ruin it.",
+      "pose": "idle",
+      "expression": "happy",
+      "prop": {
+        "type": "battery",
+        "from": 0.6,
+        "level": 0.9
+      },
+      "keyword": "One missed day is fine",
+      "setting": "park"
+    },
+    {
+      "narration": "It was a small study. But the method was simple. Same action, same cue, every day.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "clock",
+        "time": 7,
+        "spin": 0.0
+      },
+      "keyword": "Same cue, every day",
+      "setting": "living_room"
+    },
+    {
+      "narration": "Today, pick something you already do. After dinner, ten minutes of revision. Same again tomorrow.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "After dinner",
+          "Ten minutes",
+          "Tomorrow too"
+        ],
+        "checked": 3
+      },
+      "keyword": "After dinner",
+      "setting": "living_room"
+    }
+  ]
+}

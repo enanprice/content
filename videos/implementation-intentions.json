@@ -1,0 +1,93 @@
+{
+  "title": "Wanting to revise is not a plan",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Gollwitzer, P. M., & Sheeran, P. (2006). Implementation intentions and goal achievement: A meta-analysis of effects and processes. Advances in Experimental Social Psychology, 38, 69-119. The technique was introduced in Gollwitzer, P. M. (1999). Implementation intentions: Strong effects of simple plans. American Psychologist, 54(7), 493-503.",
+    "finding": "Across 94 independent tests, people who made 'if situation X, then I will do Y' plans were more likely to act on their goals than people who only held the goal.",
+    "evidence": "strong",
+    "caveat": "Most of the 94 studies involved adults and short-term goals, not teenagers revising. The effect in everyday life is likely smaller than the headline average.",
+    "link": "https://doi.org/10.1016/S0065-2601(06)38002-1"
+  },
+  "scenes": [
+    {
+      "narration": "Wanting to revise more doesn't make you revise more.",
+      "pose": "shrug",
+      "expression": "smug",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "?"
+      },
+      "keyword": "Wanting it",
+      "setting": "living_room",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "I'll do more maths this week. That's a goal. It has no time and no place. So it loses to everything else.",
+      "pose": "talking",
+      "expression": "tired",
+      "prop": "phone",
+      "keyword": "No time. No place.",
+      "setting": "living_room"
+    },
+    {
+      "narration": "A psychologist called Peter Gollwitzer tested a fix. It's called an if-then plan.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": {
+        "type": "arrow",
+        "direction": "right",
+        "color": "#4C8DF5"
+      },
+      "keyword": "If... then...",
+      "setting": "desk"
+    },
+    {
+      "narration": "If it's four o'clock, then I open my maths book at the kitchen table.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "clock",
+        "time": 4,
+        "spin": 0.0
+      },
+      "keyword": "If it's 4pm",
+      "setting": "desk"
+    },
+    {
+      "narration": "Across ninety-four studies, people who made plans like that followed through more often.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.45,
+          0.75
+        ],
+        "labels": [
+          "Goal",
+          "Plan"
+        ]
+      },
+      "keyword": "94 studies",
+      "setting": "desk"
+    },
+    {
+      "narration": "Today, write one sentence. If it's this time, then I do this, in this place. Stick it where you'll see it.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "checklist",
+        "items": [
+          "When",
+          "What",
+          "Where"
+        ],
+        "checked": 3
+      },
+      "keyword": "One sentence",
+      "setting": "bedroom"
+    }
+  ]
+}

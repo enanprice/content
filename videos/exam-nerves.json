@@ -1,0 +1,97 @@
+{
+  "title": "What a pounding heart before an exam means",
+  "voice": "en-GB-RyanNeural",
+  "rate": "+0%",
+  "transition": "slide_left",
+  "source": {
+    "citation": "Jamieson, J. P., Mendes, W. B., Blackstock, E., & Schmader, T. (2010). Turning the knots in your stomach into bows: Reappraising arousal improves performance on the GRE. Journal of Experimental Social Psychology, 46(1), 208-212.",
+    "finding": "Students told before a practice test that feeling keyed up does not hurt performance, and may help it, scored higher on the maths section than a control group, and reported higher maths scores on the real exam one to three months later.",
+    "evidence": "mixed",
+    "caveat": "A small single study of adult students sitting a US graduate entrance exam. Later studies of the same idea have had uneven results. It is about ordinary pre-exam nerves only; it is not a treatment for anxiety, and the script points anyone who is struggling towards a trusted adult instead of offering advice.",
+    "link": "https://doi.org/10.1016/j.jesp.2009.08.015"
+  },
+  "scenes": [
+    {
+      "narration": "A pounding heart before an exam doesn't mean you're about to do badly.",
+      "pose": "pointing",
+      "expression": "stressed",
+      "prop": {
+        "type": "clock",
+        "time": 9,
+        "spin": 0.2
+      },
+      "keyword": "Pounding heart",
+      "setting": "classroom",
+      "camera": "zoom_in"
+    },
+    {
+      "narration": "Most people read those nerves as a bad sign.",
+      "pose": "idle",
+      "expression": "stressed",
+      "prop": {
+        "type": "arrow",
+        "direction": "down",
+        "color": "#EB5757"
+      },
+      "keyword": "A bad sign?",
+      "setting": "classroom"
+    },
+    {
+      "narration": "In 2010, researchers told one group of students, before a practice test, that feeling keyed up could actually help.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": "brain",
+      "keyword": "Could it help?",
+      "setting": "library"
+    },
+    {
+      "narration": "That group scored higher on the maths section. And again on the real exam, weeks later.",
+      "pose": "talking",
+      "expression": "happy",
+      "prop": {
+        "type": "bar_chart",
+        "values": [
+          0.55,
+          0.75
+        ],
+        "labels": [
+          "Usual",
+          "Told"
+        ]
+      },
+      "keyword": "Higher maths scores",
+      "setting": "library"
+    },
+    {
+      "narration": "Be careful with this one. It was a small study. It won't work for everyone.",
+      "pose": "shrug",
+      "expression": "neutral",
+      "prop": {
+        "type": "thought_bubble",
+        "text": "?"
+      },
+      "keyword": "Small study",
+      "setting": "library"
+    },
+    {
+      "narration": "And if stress feels like too much, talk to a teacher or someone you trust.",
+      "pose": "talking",
+      "expression": "neutral",
+      "prop": null,
+      "keyword": "Talk to someone",
+      "setting": "park"
+    },
+    {
+      "narration": "Today, before your next test, try telling yourself one thing. This is my body getting ready.",
+      "pose": "pointing",
+      "expression": "happy",
+      "prop": {
+        "type": "arrow",
+        "direction": "up",
+        "color": "#58B86C"
+      },
+      "keyword": "Getting ready",
+      "setting": "park"
+    }
+  ]
+}

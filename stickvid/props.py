@@ -311,7 +311,7 @@ def bar_chart(c, x, y, w=360, h=300, values=(0.3, 0.55, 0.9), colors=None, grow=
         if bh > 6:
             c.rect((bx, bottom - bh, bx + bar_w, bottom), fill=colors[i % len(colors)], outline=INK, width=5)
         if labels:
-            c.text((bx + bar_w / 2, bottom + 14), labels[i], 26, INK, anchor="mt")
+            c.text((bx + bar_w / 2, bottom + 14), labels[i], max(22, w * 0.095), INK, anchor="mt")
     c.polyline([(left, top), (left, bottom), (right, bottom)], INK, 8)
 
 

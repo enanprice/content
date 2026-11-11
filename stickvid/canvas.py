@@ -5,28 +5,35 @@ canvas multiplies them by the supersampling factor internally, so no other
 module has to care about anti-aliasing.
 """
 
+import os
 from functools import lru_cache
 
 from PIL import Image, ImageDraw, ImageFont
 
 from . import config
 
-# Bold sans fonts commonly present on Linux / macOS / Windows. The first one
-# that loads wins; otherwise Pillow's built-in font is used.
-_FONT_CANDIDATES = [
-    "DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-    "/Library/Fonts/Arial Bold.ttf",
-    "C:/Windows/Fonts/arialbd.ttf",
-    "arialbd.ttf",
-    "Arial Bold.ttf",
-]
+_FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
+# Two bundled open-licence fonts (SIL OFL, licences alongside them):
+#   "sans"  Poppins SemiBold - captions and labels
+#   "hand"  Patrick Hand     - handwritten notes
+# System fonts follow as fallbacks, then Pillow's built-in font.
+_FONT_CANDIDATES = {
+    "sans": [
+        os.path.join(_FONT_DIR, "Poppins-SemiBold.ttf"),
+        "DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
+        "arialbd.ttf",
+    ],
+    "hand": [os.path.join(_FONT_DIR, "PatrickHand-Regular.ttf")],
+}
 
 
-@lru_cache(maxsize=64)
-def _font(px):
-    for name in _FONT_CANDIDATES:
+@lru_cache(maxsize=128)
+def _font(px, family="sans"):
+    for name in _FONT_CANDIDATES.get(family, []) + _FONT_CANDIDATES["sans"]:
         try:
             return ImageFont.truetype(name, px)
         except OSError:
@@ -99,9 +106,9 @@ class Canvas:
         self.d.rounded_rectangle(self._box(box), radius=radius * self.ss, fill=fill,
                                  outline=outline, width=self._w(width) if outline else 0)
 
-    def text(self, pos, s, size, color=config.INK, anchor="mm"):
-        """Draw text. `anchor` is a Pillow anchor ('mm' = centred on pos)."""
-        self.d.text(self._p(pos), s, font=_font(max(1, round(size * self.ss))),
+    def text(self, pos, s, size, color=config.INK, anchor="mm", font="sans"):
+        """Draw text. `anchor` is a Pillow anchor ('mm' = centred on pos); font is "sans" or "hand"."""
+        self.d.text(self._p(pos), s, font=_font(max(1, round(size * self.ss)), font),
                     fill=color, anchor=anchor)
 
     # -- layers ---------------------------------------------------------------
@@ -117,6 +124,14 @@ class Canvas:
         x = round(center[0] * self.ss - tile.width / 2)
         y = round(center[1] * self.ss - tile.height / 2)
         self.img.paste(tile, (x, y), tile)
+
+    def copy(self):
+        """Independent copy - draw a static background once, then copy it per frame."""
+        other = Canvas.__new__(Canvas)
+        other.w, other.h, other.ss, other.bg = self.w, self.h, self.ss, self.bg
+        other.img = self.img.copy()
+        other.d = ImageDraw.Draw(other.img)
+        return other
 
     # -- output ---------------------------------------------------------------
     def to_frame(self, camera=None):
