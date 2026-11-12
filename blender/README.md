@@ -1,9 +1,16 @@
-# Blocky 3D character (Blender)
+# Blocky 3D character and town (Blender)
 
-`build_character.py` builds an original blocky character in Blender from
-primitives, rigs it, animates a 5-second test clip and renders a 540x960
-preview. It is separate from the 2D `stickvid` pipeline in the rest of this
-repository: nothing here is wired into `make.py` yet.
+Two scripts, each run on its own with `blender -b -P <script>`:
+
+- `build_character.py` builds an original blocky character from primitives,
+  rigs it, animates a 5-second test clip and renders a 540x960 preview.
+- `buildings.py` generates a modular blocky town (buildings, bus, street
+  props, lighting presets) and renders an establishing shot at midnight and
+  again at dawn. See [The town](#the-town) below.
+
+They are separate from the 2D `stickvid` pipeline in the rest of this
+repository, and from each other: nothing here is wired into `make.py`, and the
+character is not yet placed in the town.
 
 Tested with Blender 4.2.3 LTS on Linux, rendering with Eevee on the CPU
 (software OpenGL). It has not been run on Windows, macOS or a GPU.
@@ -194,3 +201,163 @@ pose set for them. The turn is clamped to 75 degrees and the nod to 40.
   walking will slide.
 - Rigid boxes intersect at elbows, knees and shoulders in strong poses. That
   is the blocky look, but it is visible in `panic` and `sit_driving`.
+
+---
+
+# The town
+
+```bash
+blender -b -P buildings.py
+```
+
+Writes to `town_out/`, next to the script:
+
+| File | What it is |
+| --- | --- |
+| `town.blend` | the whole street, lit for midnight |
+| `establishing_midnight.png` | the street at midnight, clock at 12:00, 1080x1920 |
+| `establishing_dawn.png` | the same shot at dawn, clock at 5:40 |
+
+Both stills together took 40 seconds on 4 CPU cores with no GPU. The street is
+about 12,000 triangles in 121 mesh objects.
+
+| Option (after `--`) | Effect |
+| --- | --- |
+| `--preset day` | which lighting to render: `day`, `dawn`, `midnight`. Repeat for several |
+| `--scale 50` | percent of 1080x1920 |
+| `--samples N` | quality (default 24) |
+| `--engine cycles` | or `workbench`, if Eevee can't start |
+| `--no-render` | build and save the `.blend` only |
+
+Install, GPU notes and the Blender UI notes above apply here too. One more for
+the town: the haze is a large box called `Haze` drawn as a wireframe. Don't
+delete it, and don't be alarmed by the box in the viewport.
+
+## No text anywhere
+
+Signs, the bus's destination board and the school flag are blank panels, and
+the clock faces have tick marks instead of numerals. `make_building(sign=True)`
+adds a blank panel; there is no option to put text on it. If the story later
+needs one readable sign, add a text object or an image texture to that
+building's `sign` object by hand, so that it stays a deliberate exception.
+
+## make_building
+
+```python
+make_building(width, depth, floors, roof_style, wall_colour, door_side,
+              name="Building", location=(0, 0, 0), rotation=0.0, ...)
+```
+
+| Argument | Meaning |
+| --- | --- |
+| `width`, `depth` | footprint in metres; width runs along the street |
+| `floors` | number of storeys (2.8 m each; change with `floor_height`) |
+| `roof_style` | `"flat"`, `"gabled"`, `"clock_tower"` |
+| `wall_colour` | `"#RRGGBB"` |
+| `door_side` | which wall has the door: `"front"`, `"back"`, `"left"`, `"right"` |
+| `door_offset` | -1..1, slides the door along that wall |
+| `sign` | blank panel above the door |
+| `shopfront` | one large display window on the ground floor |
+| `lit_fraction`, `seed` | what share of windows light up at night, and which |
+
+A building's origin is the middle of its front wall at ground level. Its front
+faces -Y; `rotation` (degrees) turns it. It returns an Empty that everything
+else is parented to: move or rotate that.
+
+**Windows** are recessed: four frame bars stand proud of the wall with the
+glass set back between them. All of a building's frames are one mesh and all
+of its glass is two (the panes that light up, and the ones that stay dark), so
+a building is about ten objects however many windows it has.
+
+**Day and night per building.** Each building owns its window material:
+
+```python
+set_windows(town["bakery"], on=True)              # just the bakery
+set_windows(town["school"], on=False)
+set_windows(town["house"], on=True, frame=48)     # keyframed: a light comes on at frame 48
+```
+
+## The buildings
+
+| Function | What you get |
+| --- | --- |
+| `make_bakery()` | two storeys, gabled roof, shopfront window, striped awning, blank sign, table of loaves outside |
+| `make_school()` | 17 m wide, flat roof, double doors, steps, flagpole with a blank flag |
+| `make_bus_depot()` | one tall storey, roller garage door, side door, blank sign |
+| `make_clock_tower()` | stone hall with a tower; a clock face and a pair of hands on all four sides |
+
+**Clock.** `set_clock(building, hours, minutes, frame=None)` turns the hands on
+all four faces. Hours can run past 12 so the hands sweep forwards:
+
+```python
+set_clock(tower, 0, 0, frame=1)
+set_clock(tower, 3, 0, frame=120)      # minute hand goes round three times
+```
+
+## Props
+
+| Function | Notes |
+| --- | --- |
+| `make_bus()` | blocky single-decker with four separate wheels, headlights, blank destination board |
+| `make_path(points)` | a smooth curve through `[(x, y), ...]` for the bus to follow |
+| `drive_bus(bus, path, start_frame, end_frame, start=0, end=1)` | moves the bus along the curve, turning with it, and spins the wheels by exactly the distance travelled |
+| `set_bus_lights(bus, on)` | interior lights and headlights |
+| `make_loaf()` | bread with score marks |
+| `make_streetlamp()` | pole, glowing head and a real point light |
+| `make_fence(length)` | posts and two rails |
+| `make_tree()` | box trunk, cube canopy |
+| `make_road(length)` | tarmac, dashed centre line, edge lines, raised pavement and kerb on both sides |
+
+Driving the bus out of the depot and down the street:
+
+```python
+drive_bus(town["bus"], town["bus_path"], 1, 97)                       # whole path in 4 seconds
+drive_bus(town["bus"], town["bus_path"], 1, 49, start=0.0, end=0.5)   # or stop half way...
+drive_bus(town["bus"], town["bus_path"], 73, 121, start=0.5, end=1.0) # ...and carry on later
+```
+
+## street_layout()
+
+One street running away from the camera, five buildings:
+
+```
+        left side              right side
+        Bakery                 House
+        Clock tower            Bus depot
+                 School across the far end
+```
+
+I read "five buildings and the school at the end" as five including the
+school. If you meant five plus the school, add one more `make_building(...)`
+line to the `town` dict in `street_layout()`.
+
+It returns a dict: `bakery`, `clock_tower`, `house`, `bus_depot`, `school`,
+`all_buildings`, `bus`, `bus_path`, `road`.
+
+## Lighting presets
+
+```python
+set_lighting("midnight", town)     # or "dawn", "day"
+```
+
+| Preset | Light | Windows | Streetlamps | Haze |
+| --- | --- | --- | --- | --- |
+| `day` | high white sun, blue sky | off | off | none |
+| `dawn` | low orange sun, pink-to-blue sky | bakery only | dim | light, warm |
+| `midnight` | blue moonlight, dark blue sky, a blocky moon | all on | on | subtle, blue |
+
+A preset changes the sun, sky, haze, windows, streetlamps and bus lights and
+rebuilds nothing, so the same camera can render each one. The numbers are in
+the `LIGHTING` dict near the bottom of the script.
+
+## Known limits
+
+- Tested on Blender 4.2.3 with Eevee on CPU only, like the character script.
+- Window glow is the emissive material alone. Eevee in 4.2 has no bloom
+  setting; for a soft halo round the windows add a Glare node in the
+  compositor.
+- The lit windows clip to near-white in the midnight shot. Lower
+  `window_strength` in `LIGHTING["midnight"]` if you want to see more colour.
+- `drive_bus` moves at constant speed with no acceleration or braking.
+- Building interiors are empty and the glass is opaque: you cannot see in.
+- The loaves sit on a table outside the bakery, not in the window, for that reason.

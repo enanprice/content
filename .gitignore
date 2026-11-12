@@ -9,3 +9,6 @@ output/*
 out/
 blender/character_out/*
 !blender/character_out/character_test.mp4
+blender/town_out/*
+!blender/town_out/establishing_midnight.png
+!blender/town_out/establishing_dawn.png
