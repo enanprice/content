@@ -16,6 +16,63 @@ the frames, edge-tts speaks the narration, ffmpeg assembles the MP4.
 7. **Upload** `out/my-video.mp4`, use `out/my-video.png` as the thumbnail, and
    paste the title, description and hashtags from `out/my-video.txt`.
 
+## 3D episodes
+
+`make.py` also builds the Blender episodes. A JSON file with `"shots"` instead
+of `"scenes"` is a shot list for the blocky 3D town:
+
+```bash
+python make.py episodes/ep01.json --preview
+```
+
+```bash
+python make.py episodes/ep01.json
+```
+
+This needs Blender 4.2 or newer as well as ffmpeg. `make.py` looks for it on
+your PATH, in the standard install folders, or where you point it:
+
+```bash
+python make.py episodes/ep01.json --blender "/path/to/blender"
+```
+
+What happens:
+
+1. **Narration.** edge-tts reads each shot's `narration` in a UK English voice
+   and reports when every word starts. The line's length sets the shot's
+   length (a `duration` on the same shot acts as a minimum).
+2. **Picture.** Blender renders the shots to PNG frames.
+3. **Captions.** Large white capitals with a black outline, three words at a
+   time, the current word in yellow, centred at y = 1385: inside the safe area
+   (below the top 250px, above the bottom 400px).
+4. **Sound.** Narration, sound effects and optional music. The music drops
+   automatically while the voice is speaking and comes back up in the gaps.
+5. **Export.** `out/ep01.mp4` (H.264, 30 fps, 1080x1920) and `out/ep01.png`,
+   a thumbnail from the middle of the first shot.
+
+`--preview` gives 540x960 at 15 fps. The thumbnail is then half size too.
+Blender's frames are kept in `out/ep01_work/`.
+
+Fields this adds to a shot list (everything else is in `blender/README.md`):
+
+| Field | Meaning |
+| --- | --- |
+| `voice`, `rate` (top level) | edge-tts voice and speed. Default `en-GB-RyanNeural`, `"+0%"` |
+| `music` (top level) | `{"path": "...", "volume": 0.12}`, relative to the JSON file. None is bundled |
+| `narration` (per shot) | the line to speak. Shots without one need a `duration` |
+| `sfx` (per shot) | list of `"clock_chime"`, `"bus_engine"`, `"whoosh"`, or `{"tag": ..., "at": seconds, "volume": 0-1}` |
+
+The three effects are synthesised in code, so they are simple: a bell, a low
+rumble that runs to the end of its shot, and a short swish.
+
+`episodes/ep01.json` is a placeholder: the eight shots and their narration are
+invented to exercise the pipeline. Replace them with your own.
+
+**Render time.** Blender is the slow step. With a GPU expect a few minutes for
+a 30-second episode. On a machine with no GPU the midnight shots are very
+slow because of the haze: a 4.6-second preview took over six minutes on four
+CPU cores. Use `--preview` first, and test with one or two shots.
+
 ## Install
 
 You need Python 3.9+ and ffmpeg.
@@ -275,7 +332,9 @@ stickvid/
   video.py     VideoWriter: pipes raw frames into ffmpeg
   config.py    frame size, fps, safe zone, colours
   fonts/       Poppins and Patrick Hand (SIL Open Font License)
-blender/             a separate 3D character experiment (see blender/README.md)
+blender/             3D character, town and shot runner (see blender/README.md)
+episodes/*.json      3D episodes: shot lists with narration
+  episode.py   3D episode pipeline: narration, Blender, captions, sound
 make_test_video.py   hand-animated 10-second demo of the Python API
 make_showcase.py     regenerates the reference sheets in docs/
 ```

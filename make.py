@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Build videos from JSON specs.
 
-    python make.py videos/*.json
+    python make.py videos/*.json          2D stick-figure videos ("scenes")
+    python make.py episodes/ep01.json     3D Blender episodes ("shots")
 
 For every spec this writes three files to out/ (change with --out):
 
@@ -23,6 +24,7 @@ file is reported straight away rather than after the others have rendered.
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -99,11 +101,25 @@ def upload_text(spec, name, duration):
 # ---------------------------------------------------------------------------
 # building one video
 # ---------------------------------------------------------------------------
-def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False):
+def is_episode(path):
+    """True for a 3D shot list ("shots"), False for a 2D stick-figure video ("scenes")."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return isinstance(data, dict) and "shots" in data
+    except (OSError, ValueError):
+        return False                                 # let the normal loader report the problem
+
+
+def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False, blender=None):
     """Render one spec. Returns (name, duration, seconds_taken)."""
     started = time.time()
     name = os.path.splitext(os.path.basename(path))[0]
     log = (lambda *a: None) if quiet else print
+    if is_episode(path):
+        from stickvid import episode
+        name, duration = episode.build(path, out_dir, preview=preview, use_tts=use_tts, blender=blender, log=log)
+        return name, duration, time.time() - started
     spec = load(path)
     os.makedirs(out_dir, exist_ok=True)
 
@@ -147,16 +163,23 @@ def main():
     ap.add_argument("--no-tts", action="store_true", help="no voice; estimated timings (offline)")
     ap.add_argument("--guides", action="store_true", help="overlay the unsafe zones in red")
     ap.add_argument("--jobs", type=int, default=1, help="videos to render at once (default 1)")
+    ap.add_argument("--blender", default=None, help="path to the Blender program (3D episodes only)")
     args = ap.parse_args()
 
     # Validate everything up front.
     problems = 0
     for path in args.specs:
         try:
+            if is_episode(path):
+                from stickvid import episode
+                spec = episode.shotlist.load(path)
+                if args.check:
+                    print(f"{path}: OK ({len(spec['shots'])} shots, 3D episode)")
+                continue
             spec = load(path)
             if args.check:
                 print(f"{path}: OK ({len(spec['scenes'])} scenes)")
-        except SpecError as e:
+        except (SpecError, ValueError) as e:
             print(e, file=sys.stderr)
             problems += 1
     if problems:
@@ -164,7 +187,8 @@ def main():
     if args.check:
         return
 
-    kwargs = dict(out_dir=args.out, preview=args.preview, use_tts=not args.no_tts, guides=args.guides)
+    kwargs = dict(out_dir=args.out, preview=args.preview, use_tts=not args.no_tts, guides=args.guides,
+                  blender=args.blender)
     jobs = [(path, dict(kwargs, quiet=args.jobs > 1)) for path in args.specs]
     failed = []
     started = time.time()

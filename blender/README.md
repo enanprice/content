@@ -372,24 +372,24 @@ An episode is a JSON file: a list of shots. `shots.py` builds the town and the
 character, animates every shot and renders PNG frames.
 
 ```bash
-python shotlist.py episodes/episode1.json
+python shotlist.py ../episodes/ep01.json
 ```
 
 checks the file from an ordinary terminal (no Blender needed), and
 
 ```bash
-blender -b -P shots.py -- episodes/episode1.json --stills --preview
+blender -b -P shots.py -- ../episodes/ep01.json --stills --preview
 ```
 
 renders one small frame per shot: a storyboard, about a minute on a CPU. Do
 that before any full render.
 
 ```bash
-blender -b -P shots.py -- episodes/episode1.json --preview
+blender -b -P shots.py -- ../episodes/ep01.json --preview
 ```
 
 ```bash
-blender -b -P shots.py -- episodes/episode1.json
+blender -b -P shots.py -- ../episodes/ep01.json
 ```
 
 | Option | Effect |
@@ -405,7 +405,7 @@ Frames go to `shots_out/<name>/frames/frame_0001.png ...`, numbered through
 the whole episode, with `scene.blend` beside them. The frames have no sound.
 The ffmpeg command that joins them into a video is printed at the end.
 
-`episodes/episode1.json` is a **placeholder**: eight shots I made up to
+`episodes/ep01.json` (in the repository root) is a **placeholder**: eight shots I made up to
 exercise every feature. Replace them with your own.
 
 ## A shot
@@ -424,7 +424,9 @@ exercise every feature. Replace them with your own.
 }
 ```
 
-Only `duration` is required.
+Only `duration` is required. For narration, captions, sound and the final MP4,
+run the shot list through `python make.py episodes/ep01.json` from the repository
+root instead: see the main README.
 
 | Field | Values |
 | --- | --- |

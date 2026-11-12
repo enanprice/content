@@ -1,0 +1,237 @@
+{
+  "title": "Episode 1 (PLACEHOLDER SHOTS AND NARRATION - replace with your own)",
+  "voice": "en-GB-RyanNeural",
+  "shots": [
+    {
+      "name": "1. The street at midnight",
+      "narration": "At midnight, the street was quiet.",
+      "lighting": "midnight",
+      "clock": "11:58",
+      "camera": {
+        "move": "push_in",
+        "target": "clock",
+        "position": [
+          1.9,
+          -9.5,
+          2.3
+        ],
+        "amount": 0.25,
+        "lens": 24
+      }
+    },
+    {
+      "name": "2. He walks home",
+      "narration": "One person was still walking home.",
+      "lighting": "midnight",
+      "camera": {
+        "move": "follow",
+        "target": "character",
+        "position": [
+          1.2,
+          -5.5,
+          1.7
+        ],
+        "lens": 32
+      },
+      "character": {
+        "pose": "idle",
+        "expression": "sleepy",
+        "path": {
+          "points": [
+            [
+              4.8,
+              -3.0
+            ],
+            [
+              4.8,
+              4.0
+            ]
+          ],
+          "speed": 1.4
+        }
+      }
+    },
+    {
+      "name": "3. He notices the clock",
+      "narration": "He looked up at the clock tower.",
+      "lighting": "midnight",
+      "clock": "11:59",
+      "camera": {
+        "move": "orbit",
+        "target": "character",
+        "position": [
+          2.6,
+          1.2,
+          1.9
+        ],
+        "degrees": 35,
+        "lens": 35
+      },
+      "character": {
+        "pose": "idle",
+        "expression": "surprised",
+        "position": [
+          4.8,
+          4.0
+        ],
+        "heading": -70,
+        "look_at": "clock"
+      }
+    },
+    {
+      "name": "4. The clock strikes",
+      "narration": "Twelve.",
+      "sfx": [
+        "clock_chime"
+      ],
+      "lighting": "midnight",
+      "clock": "12:00",
+      "camera": {
+        "move": "static",
+        "target": "clock",
+        "position": [
+          -1.5,
+          14.5,
+          4.5
+        ],
+        "lens": 50
+      }
+    },
+    {
+      "name": "5. The bus leaves the depot",
+      "narration": "Then the last bus left the depot.",
+      "sfx": [
+        "bus_engine"
+      ],
+      "lighting": "midnight",
+      "camera": {
+        "move": "handheld_shake",
+        "target": "bus_depot",
+        "position": [
+          -3.8,
+          9.0,
+          1.6
+        ],
+        "lens": 28
+      },
+      "vehicle": {
+        "path": [
+          [
+            5.1,
+            23.6
+          ],
+          [
+            2.6,
+            21.0
+          ],
+          [
+            1.75,
+            14.0
+          ],
+          [
+            1.75,
+            -4.0
+          ]
+        ],
+        "speed": 6.5
+      },
+      "duration": 4.5
+    },
+    {
+      "name": "6. Too close",
+      "narration": "It passed a little closer than he liked.",
+      "sfx": [
+        {
+          "tag": "whoosh",
+          "at": 0.4
+        }
+      ],
+      "lighting": "midnight",
+      "camera": {
+        "move": "push_in",
+        "target": "character",
+        "position": [
+          2.4,
+          1.0,
+          1.6
+        ],
+        "amount": 0.3,
+        "lens": 35
+      },
+      "character": {
+        "pose": "panic",
+        "expression": "shocked",
+        "position": [
+          4.8,
+          4.0
+        ],
+        "heading": -40
+      },
+      "props": {
+        "hide": [
+          "bus"
+        ]
+      }
+    },
+    {
+      "name": "7. Dawn at the bakery",
+      "narration": "By dawn, only the bakery was awake.",
+      "lighting": "dawn",
+      "clock": "5:40",
+      "camera": {
+        "move": "pull_back",
+        "target": "bakery",
+        "position": [
+          3.0,
+          -4.0,
+          2.4
+        ],
+        "amount": 0.4,
+        "lens": 28
+      },
+      "character": {
+        "pose": "sleepy",
+        "expression": "sleepy",
+        "position": [
+          -4.9,
+          2.4
+        ],
+        "heading": -60
+      },
+      "props": {
+        "show": [
+          "bus"
+        ]
+      }
+    },
+    {
+      "name": "8. Shrug",
+      "narration": "And nobody could say what any of it meant.",
+      "lighting": "dawn",
+      "camera": {
+        "move": "static",
+        "target": "character",
+        "position": [
+          -3.9,
+          -0.6,
+          1.6
+        ],
+        "lens": 40
+      },
+      "character": {
+        "pose": "shrug",
+        "expression": "deadpan",
+        "position": [
+          -4.9,
+          2.4
+        ],
+        "heading": 20,
+        "look_at": [
+          -3.9,
+          -0.6,
+          1.6
+        ]
+      }
+    }
+  ]
+}

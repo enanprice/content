@@ -20,6 +20,7 @@ from .canvas import _font
 
 CAPTION_Y = 1385                 # vertical centre of the caption strip
 CAPTION_SIZE = 56                # px; shrinks automatically for long phrases
+BOLD_SIZE = 88                   # px, for style="bold"
 PAD_X, PAD_Y = 30, 18            # strip padding around the text
 MAX_WIDTH = config.SAFE_BOX[2] - config.SAFE_BOX[0] - 2 * PAD_X - 20
 LINGER = 0.35                    # seconds a phrase stays after its last word
@@ -37,8 +38,14 @@ class _Chunk:
 
 class Captions:
     def __init__(self, words, max_words=4, uppercase=False, highlight=(255, 221, 120),
-                 color=config.WHITE, max_chars=26):
-        """words: every spoken word of the video, in order, with absolute times."""
+                 color=config.WHITE, max_chars=26, style="subtle"):
+        """words: every spoken word of the video, in order, with absolute times.
+
+        style  "subtle": sentence-size text on a soft dark strip
+               "bold":   large white text with a heavy black outline and no
+                         strip; the current word in the highlight colour
+        """
+        self.style = style
         self.uppercase = uppercase
         self.highlight = highlight
         self.color = color
@@ -77,6 +84,8 @@ class Captions:
             return frame
         chunk = self.chunks[i]
         texts = [w.text.upper() if self.uppercase else w.text for w in chunk.words]
+        if self.style == "bold":
+            return self._draw_bold(frame, chunk, texts, t)
 
         def measure(size):
             font = _font(size)
@@ -109,4 +118,28 @@ class Captions:
             d.text((x, h / 2), s, font=font, fill=fill, anchor="lm")
             x += word_w + space
         frame.paste(layer, (round(config.WIDTH / 2 - w / 2), round(CAPTION_Y - h / 2)), layer)
+        return frame
+
+    def _draw_bold(self, frame, chunk, texts, t):
+        size = BOLD_SIZE
+        limit = config.SAFE_BOX[2] - config.SAFE_BOX[0] - 40
+
+        def measure(size):
+            font = _font(size)
+            space = font.getlength(" ") + 2 * size * 0.1       # the outline eats into the gaps
+            widths = [font.getlength(s) for s in texts]
+            return font, space, widths, sum(widths) + space * (len(texts) - 1)
+
+        font, space, widths, total = measure(size)
+        if total > limit:
+            size = int(size * limit / total)
+            font, space, widths, total = measure(size)
+        active = max((k for k, w in enumerate(chunk.words) if w.start <= t + 0.02), default=0)
+        d = ImageDraw.Draw(frame)
+        stroke = max(4, round(size * 0.1))
+        x = config.WIDTH / 2 - total / 2
+        for k, (s, word_w) in enumerate(zip(texts, widths)):
+            d.text((x, CAPTION_Y), s, font=font, anchor="lm", stroke_width=stroke, stroke_fill=(0, 0, 0),
+                   fill=self.highlight if k == active else self.color)
+            x += word_w + space
         return frame

@@ -11,10 +11,14 @@ Format
 ------
 {
   "title": "Episode 1",
+  "voice": "en-GB-RyanNeural",                 optional: any edge-tts voice
+  "music": {"path": "music/bed.mp3", "volume": 0.12},   optional: ducks under the narration
   "shots": [
     {
       "name": "Clock strikes",                 optional label
-      "duration": 3.5,                         seconds, or "auto" = length of "audio"
+      "narration": "At midnight, the street was quiet.",   optional: spoken; sets the shot's length
+      "sfx": ["clock_chime", {"tag": "whoosh", "at": 1.2}], optional sound effects
+      "duration": 3.5,                         seconds (a minimum, if there is narration), or "auto" = length of "audio"
       "audio": "audio/shot1.mp3",              only read when duration is "auto"
       "lighting": "midnight",                  day / dawn / midnight
       "clock": "12:00",                        optional: time on the clock tower
@@ -69,6 +73,8 @@ EXPRESSIONS = {
     "sleepy": ("half_closed", "flat"),
     "deadpan": ("half_closed", "neutral"),
 }
+
+SFX = ["clock_chime", "bus_engine", "whoosh"]
 
 BUILDINGS = ["bakery", "clock_tower", "house", "bus_depot", "school"]
 # Things a camera or a look can aim at.
@@ -172,7 +178,8 @@ class _Check:
         return pts
 
 
-_SHOT = {"name", "duration", "audio", "lighting", "clock", "camera", "character", "props", "vehicle", "text"}
+_SHOT = {"name", "duration", "audio", "narration", "sfx", "lighting", "clock", "camera", "character",
+         "props", "vehicle", "text"}
 _CAMERA = {"move", "target", "position", "amount", "degrees", "lens"}
 _CHARACTER = {"pose", "expression", "position", "heading", "path", "look_at"}
 
@@ -185,8 +192,35 @@ def validate(data, base_dir=".", source="shot list"):
     ck = _Check()
     if not isinstance(data, dict):
         raise ShotListError([f"the top level must be an object {{...}}, got {_kind(data)}."], source)
-    ck.keys("(top level)", data, {"title", "shots"})
-    out = {"title": data.get("title") if isinstance(data.get("title"), str) else "", "shots": []}
+    ck.keys("(top level)", data, {"title", "voice", "rate", "music", "shots"})
+    out = {"title": data.get("title") if isinstance(data.get("title"), str) else "",
+           "voice": "en-GB-RyanNeural", "rate": "+0%", "music": None, "shots": []}
+    if "voice" in data:
+        voice = data["voice"]
+        if isinstance(voice, str) and voice.count("-") >= 2 and voice.endswith("Neural"):
+            out["voice"] = voice
+        else:
+            ck.err("voice", 'must be an edge-tts voice name such as "en-GB-RyanNeural" or "en-GB-SoniaNeural".')
+    if "rate" in data:
+        rate = data["rate"]
+        if isinstance(rate, str) and len(rate) >= 3 and rate[0] in "+-" and rate[-1] == "%" and rate[1:-1].isdigit():
+            out["rate"] = rate
+        else:
+            ck.err("rate", 'must be a signed percentage such as "+10%" or "-5%".')
+    music = data.get("music")
+    if music is not None:
+        if isinstance(music, str):
+            music = {"path": music}
+        if not isinstance(music, dict) or not isinstance(music.get("path"), str):
+            ck.err("music", 'must be a file path or {"path": "...", "volume": 0.12}.')
+        else:
+            ck.keys("music", music, {"path", "volume"})
+            full = music["path"] if os.path.isabs(music["path"]) else os.path.join(base_dir, music["path"])
+            volume = ck.number("music.volume", music.get("volume", 0.12), 0, 1)
+            if not os.path.isfile(full):
+                ck.err("music.path", f'file not found: "{full}". Paths are relative to the JSON file.')
+            elif volume is not None:
+                out["music"] = {"path": full, "volume": volume}
 
     shots = data.get("shots")
     if not isinstance(shots, list) or not shots:
@@ -199,14 +233,45 @@ def validate(data, base_dir=".", source="shot list"):
             continue
         ck.keys(p, shot, _SHOT)
         s = {"name": shot.get("name") if isinstance(shot.get("name"), str) else f"shot {i + 1}",
-             "duration": None, "audio": None, "lighting": "day", "clock": None,
+             "duration": None, "audio": None, "narration": None, "sfx": [], "lighting": "day", "clock": None,
              "camera": {"move": "static", "target": "street", "position": None, "amount": 0.35,
                         "degrees": 40.0, "lens": 28.0},
              "character": None, "show": [], "hide": [], "vehicle": None, "text": None}
 
+        # narration: spoken by the voice; sets the shot's length
+        if shot.get("narration") is not None:
+            text = shot["narration"]
+            if not isinstance(text, str) or not any(ch.isalnum() for ch in text):
+                ck.err(f"{p}.narration", "must be text with at least one speakable word, or left out.")
+            elif len(text) > 400:
+                ck.err(f"{p}.narration", f"is {len(text)} characters; the limit is 400. Split the shot.")
+            else:
+                s["narration"] = text.strip()
+
+        # sound effects: "tag" or {"tag": ..., "at": seconds into the shot, "volume": 0..1}
+        sfx = shot.get("sfx", [])
+        if not isinstance(sfx, list):
+            ck.err(f"{p}.sfx", f"must be a list, got {_kind(sfx)}.")
+        else:
+            for j, item in enumerate(sfx):
+                q = f"{p}.sfx[{j}]"
+                if isinstance(item, str):
+                    item = {"tag": item}
+                if not isinstance(item, dict) or "tag" not in item:
+                    ck.err(q, f'must be a tag ({", ".join(SFX)}) or {{"tag": ..., "at": seconds}}.')
+                    continue
+                ck.keys(q, item, {"tag", "at", "volume"})
+                tag = ck.choice(f"{q}.tag" if len(item) > 1 else q, item["tag"], SFX)
+                at = ck.number(f"{q}.at", item.get("at", 0.0), 0, 120)
+                volume = ck.number(f"{q}.volume", item["volume"], 0, 1) if "volume" in item else None
+                if tag and at is not None:
+                    s["sfx"].append({"tag": tag, "at": float(at), "volume": volume})
+
         # duration
         if "duration" not in shot:
-            ck.err(f"{p}.duration", 'is required: seconds, or "auto" to use the length of "audio".')
+            if s["narration"] is None:
+                ck.err(f"{p}.duration", 'is required unless the shot has "narration": seconds, '
+                                        'or "auto" to use the length of "audio".')
         elif shot["duration"] == "auto":
             audio = shot.get("audio")
             if not isinstance(audio, str) or not audio.strip():
@@ -374,9 +439,9 @@ if __name__ == "__main__":
     for arg in sys.argv[1:]:
         try:
             shots = load(arg)["shots"]
-            fixed = sum(s["duration"] for s in shots if s["duration"] != "auto")
-            auto = sum(1 for s in shots if s["duration"] == "auto")
-            print(f"{arg}: OK ({len(shots)} shots, {fixed:.1f}s" + (f" + {auto} timed from audio" if auto else "") + ")")
+            fixed = sum(s["duration"] for s in shots if isinstance(s["duration"], (int, float)))
+            auto = sum(1 for s in shots if not isinstance(s["duration"], (int, float)))
+            print(f"{arg}: OK ({len(shots)} shots, {fixed:.1f}s" + (f" + {auto} timed from narration or audio" if auto else "") + ")")
         except ShotListError as e:
             print(e, file=sys.stderr)
             bad += 1

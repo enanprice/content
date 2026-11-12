@@ -267,7 +267,15 @@ def build_episode(spec, engine, samples):
 
     plan, frame = [], 1
     for i, shot in enumerate(spec["shots"], start=1):
-        seconds = audio_seconds(shot["audio"]) if shot["duration"] == "auto" else shot["duration"]
+        if shot["duration"] == "auto":
+            seconds = audio_seconds(shot["audio"])
+        elif shot["duration"] is None:
+            # Narrated shot run without make.py: guess from the word count (about 2.5 words a second).
+            seconds = len(shot["narration"].split()) / 2.5 + 0.8
+            print(f"  note: shot {i} has no duration; estimating {seconds:.1f}s from its narration. "
+                  f"Run it through make.py for exact timing.")
+        else:
+            seconds = shot["duration"]
         f0, f1 = frame, frame + max(1, round(seconds * FPS)) - 1
         frame = f1 + 1
         print(f"shot {i}: frames {f0}-{f1} ({seconds:.1f}s) {shot['name']}")
