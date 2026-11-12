@@ -246,11 +246,11 @@
       "clock": "12:00",
       "camera": {
         "move": "pull_back",
-        "target": "street",
+        "target": "clock",
         "position": [
           1.9,
-          -7.0,
-          3.2
+          -9.5,
+          2.6
         ],
         "lens": 24,
         "amount": 0.4
@@ -279,7 +279,7 @@
           -5.3,
           17.0
         ],
-        "heading": -120
+        "heading": 45
       }
     },
     {
@@ -307,16 +307,16 @@
       "camera": {
         "move": "pull_back",
         "target": [
-          -4.8,
-          19.0,
-          6.0
+          -5.3,
+          17.5,
+          2.6
         ],
         "position": [
-          -1.8,
+          -4.2,
           13.5,
-          1.2
+          0.9
         ],
-        "lens": 26,
+        "lens": 22,
         "amount": 0.35
       },
       "character": {
@@ -331,7 +331,7 @@
           -5.3,
           17.0
         ],
-        "heading": -10
+        "heading": 180
       }
     },
     {
@@ -348,7 +348,7 @@
       "clock": "12:01",
       "camera": {
         "move": "push_in",
-        "target": "street",
+        "target": "clock",
         "position": [
           1.9,
           -9.5,
@@ -384,7 +384,7 @@
           -5.3,
           17.0
         ],
-        "heading": -110
+        "heading": 50
       }
     }
   ]
