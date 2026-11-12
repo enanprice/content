@@ -165,12 +165,14 @@ def plan_timing(spec, use_tts, cache_dir, log, FPS):
     return durations, narrations
 
 
-def run_blender(blender, resolved_path, frames_root, preview, log, fps):
+def run_blender(blender, resolved_path, frames_root, preview, log, fps, draft=False):
     """Render the shot list to PNG frames with blender/shots.py."""
     cmd = [blender, "-b", "-P", os.path.join(ROOT, "blender", "shots.py"), "--",
            resolved_path, "--out", frames_root, "--fps", str(fps)]
     if preview:
         cmd.append("--preview")
+    elif draft:
+        cmd.append("--half")
     log("  rendering in Blender (this is the slow part)...")
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
     tail = []
@@ -187,7 +189,8 @@ def run_blender(blender, resolved_path, frames_root, preview, log, fps):
     return frames
 
 
-def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, cache_dir=".cache", fps=30):
+def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, cache_dir=".cache", fps=30,
+          draft=False):
     """Build one episode. Returns (name, duration_seconds).
 
     fps  frames per second of the finished video. 60 is smoother and takes
@@ -225,7 +228,7 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
     resolved = os.path.join(work, name + ".resolved.json")
     with open(resolved, "w", encoding="utf-8") as f:
         json.dump(raw, f, indent=2)
-    frames = run_blender(blender, resolved, work, preview, log, FPS)
+    frames = run_blender(blender, resolved, work, preview, log, FPS, draft)
     numbered = [(int(re.search(r"frame_(\d+)\.png$", f).group(1)), f) for f in frames]
 
     # thumbnail: the middle of the first shot, before captions go on
@@ -279,7 +282,7 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
     final = os.path.join(out_dir, name + ".mp4")
     mux(silent, final, total, clips=effects, music=spec["music"], speech=speech, duck=True)
     os.remove(silent)
-    if not preview:
+    if not preview and not draft:
         record(path, entry)                          # only finished renders go in the log
         log(f"  logged in {log_path(path)}")
     return name, total

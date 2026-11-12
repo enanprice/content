@@ -361,6 +361,7 @@ def parse_args():
     ap = argparse.ArgumentParser(prog="blender -b -P shots.py --")
     ap.add_argument("spec", help="the shot-list JSON file")
     ap.add_argument("--preview", action="store_true", help="540x960, every second frame")
+    ap.add_argument("--half", action="store_true", help="540x960 but every frame (a draft at full frame rate)")
     ap.add_argument("--stills", action="store_true", help="one middle frame per shot")
     ap.add_argument("--shot", type=int, action="append", help="only this shot number; repeatable")
     ap.add_argument("--check", action="store_true", help="validate and print the timeline only")
@@ -391,7 +392,7 @@ def main():
 
     name = os.path.splitext(os.path.basename(args.spec))[0]
     out_dir = os.path.abspath(args.out) if args.out else os.path.join(HERE, "shots_out", name)
-    samples = args.samples or (12 if args.preview else 32)
+    samples = args.samples or (12 if args.preview or args.half else 32)
 
     town, plan = build_episode(spec, args.engine, samples)
     scene = bpy.context.scene
@@ -404,7 +405,7 @@ def main():
 
     os.makedirs(out_dir, exist_ok=True)
     scene.render.resolution_x, scene.render.resolution_y = 1080, 1920
-    scene.render.resolution_percentage = 50 if args.preview else 100
+    scene.render.resolution_percentage = 50 if args.preview or args.half else 100
     scene.render.image_settings.file_format = "PNG"
     step = 2 if args.preview else 1
 

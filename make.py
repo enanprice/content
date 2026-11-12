@@ -111,7 +111,8 @@ def is_episode(path):
         return False                                 # let the normal loader report the problem
 
 
-def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False, blender=None, fps=30):
+def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False, blender=None, fps=30,
+          draft=False):
     """Render one spec. Returns (name, duration, seconds_taken)."""
     started = time.time()
     name = os.path.splitext(os.path.basename(path))[0]
@@ -119,7 +120,7 @@ def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False,
     if is_episode(path):
         from stickvid import episode
         name, duration = episode.build(path, out_dir, preview=preview, use_tts=use_tts, blender=blender,
-                                       log=print, fps=fps)     # always print: the variation report matters
+                                       log=print, fps=fps, draft=draft)     # always print: the variation report matters
         return name, duration, time.time() - started
     spec = load(path)
     os.makedirs(out_dir, exist_ok=True)
@@ -164,6 +165,8 @@ def main():
     ap.add_argument("--no-tts", action="store_true", help="no voice; estimated timings (offline)")
     ap.add_argument("--guides", action="store_true", help="overlay the unsafe zones in red")
     ap.add_argument("--jobs", type=int, default=1, help="videos to render at once (default 1)")
+    ap.add_argument("--draft", action="store_true",
+                    help="3D episodes: render at half size but every frame, scaled up (4x faster than full)")
     ap.add_argument("--blender", default=None, help="path to the Blender program (3D episodes only)")
     ap.add_argument("--fps", type=int, default=30, choices=[24, 30, 50, 60],
                     help="frame rate of 3D episodes (default 30; 60 is smoother and twice the render time)")
@@ -195,7 +198,7 @@ def main():
         return
 
     kwargs = dict(out_dir=args.out, preview=args.preview, use_tts=not args.no_tts, guides=args.guides,
-                  blender=args.blender, fps=args.fps)
+                  blender=args.blender, fps=args.fps, draft=args.draft)
     jobs = [(path, dict(kwargs, quiet=args.jobs > 1)) for path in args.specs]
     failed = []
     started = time.time()
