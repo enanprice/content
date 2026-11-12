@@ -6,3 +6,4 @@ output/*
 !output/test_video.mp4
 !output/pomodoro.mp4
 !output/study-environment.mp4
+out/

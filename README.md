@@ -1,10 +1,20 @@
 # stickvid
 
-Vertical stick-figure videos (1080x1920, 30 fps) in plain Python. Pillow draws
-the frames, ffmpeg (called through `subprocess`) assembles the MP4.
+Vertical stick-figure videos (1080x1920, 30 fps) from JSON files. Pillow draws
+the frames, edge-tts speaks the narration, ffmpeg assembles the MP4.
 
 ![poses and expressions](docs/showcase_figure.png)
-![props](docs/showcase_props.png)
+
+## Workflow
+
+1. **Install** once (below).
+2. **Write** a JSON file per video in `videos/`. Copy one of the examples.
+3. **Check** it: `python make.py videos/my-video.json --check`
+4. **Preview** it fast and small: `python make.py videos/my-video.json --preview`
+5. Watch `out/my-video.mp4`. Edit the JSON and repeat step 4 until it is right.
+6. **Render** the real thing: `python make.py videos/my-video.json`
+7. **Upload** `out/my-video.mp4`, use `out/my-video.png` as the thumbnail, and
+   paste the title, description and hashtags from `out/my-video.txt`.
 
 ## Install
 
@@ -48,46 +58,77 @@ pip install -r requirements.txt
 ```
 
 That installs Pillow (drawing) and edge-tts (narration). edge-tts calls
-Microsoft's online speech service, so rendering a narrated video needs an
-internet connection; `--no-tts` works offline.
+Microsoft's online speech service, so a narrated render needs an internet
+connection; `--no-tts` works offline.
 
-## Videos from JSON
-
-Each video is one JSON file: a list of scenes, each with narration, a pose, an
-expression, a prop, a keyword and a setting (the room it happens in).
-
-`videos/` holds eleven examples: `pomodoro.json` plus a test batch of ten on
-study technique. Each carries a `source` field naming the research behind it;
-`videos/SOURCES.md` collects them in one place for checking.
+## make.py
 
 ```bash
-python render_video.py videos/pomodoro.json
+python make.py videos/*.json
 ```
 
-Writes `output/pomodoro.mp4` (about 40 seconds; rendering takes about 100
-seconds). What happens:
+For each JSON file this writes three files to `out/`:
 
-1. The JSON is validated. Every problem is reported at once, with its location.
-2. edge-tts speaks each scene's narration in a UK English voice. The length of
-   the speech sets the length of the scene.
-3. Frames are drawn with captions burned in a phrase at a time, timed to the
-   voice: spoken words in white, the current word tinted, upcoming words dimmed.
-4. Narration, a soft whoosh on each transition and optional background music
-   are mixed and attached.
+| File | What it is |
+| --- | --- |
+| `out/<name>.mp4` | the video: narration, captions, whooshes, optional music |
+| `out/<name>.png` | thumbnail: a 1080x1920 still from the first scene, no captions |
+| `out/<name>.txt` | title, description, three hashtags, the sources, and the script |
+
+Every file is validated before anything renders, so a typo in the last one is
+reported straight away. If one video fails mid-batch (for example the speech
+service drops out), the rest still render and the failures are listed at the end.
 
 | Flag | Effect |
 | --- | --- |
+| `--preview` | 540x960 at 15 fps, no anti-aliasing. About 17 seconds per 40-second video instead of about 100. Thumbnail and text are still full quality |
 | `--check` | validate the JSON and stop |
-| `--no-tts` | no voice, timings estimated from the text; for quick offline previews |
+| `--no-tts` | no voice, timings estimated from the text; works offline |
 | `--guides` | tint everything outside the safe zone red |
-| `--fast` | supersampling off, about 3x faster, slightly jagged |
-| `--out PATH` | output file |
+| `--jobs N` | render N videos at once |
+| `--out DIR` | output folder (default `out`) |
 
-### Format
+Speech is cached in `.cache/tts`, so a preview followed by a full render only
+fetches each line once, and editing one scene only re-fetches that scene.
+
+### The text file
+
+```
+TITLE
+Is your phone distracting you when you're not using it?
+
+DESCRIPTION
+Your phone might be distracting you even when you're not touching it.
+
+Try this: Today, for one study session, put your phone on silent in another room. See if you notice.
+
+How solid is this? It is based on research with mixed results. Details and sources below.
+
+HASHTAGS
+#StudyTips #Focus #PhoneFree
+
+SOURCES
+Ward, A. F., Duke, K., Gneezy, A., & Bos, M. W. (2017). Brain drain: ...
+```
+
+- **Title** is the JSON's `title`.
+- **Description** is the JSON's `description` if you wrote one. Otherwise it is
+  built from the hook (the first sentence), the action the video ends on, and a
+  plain statement of how strong the evidence is.
+- **Hashtags** are the JSON's `hashtags`. Without them, they are guessed from
+  the file name, which is a poor substitute: write your own.
+- **Sources** are the JSON's `source` block: citation, link, finding, evidence
+  rating and caveat.
+
+The script is appended below a divider for reference; don't paste that part.
+
+## The JSON format
 
 ```json
 {
-  "title": "Why the Pomodoro technique really works",
+  "title": "Rereading is not revising",
+  "description": "Optional. Written for you if left out.",
+  "hashtags": ["#StudyTips", "#Revision", "#ActiveRecall"],
   "voice": "en-GB-RyanNeural",
   "rate": "+0%",
   "transition": "slide_left",
@@ -103,12 +144,12 @@ seconds). What happens:
   },
   "scenes": [
     {
-      "narration": "This study trick works... but not for the reason you think.",
+      "narration": "Rereading your notes feels like revision. Mostly, it isn't.",
       "pose": "pointing",
       "expression": "smug",
-      "prop": "tomato",
-      "keyword": "A study trick",
-      "setting": "desk",
+      "prop": "book",
+      "keyword": "Rereading",
+      "setting": "bedroom",
       "time": "day",
       "move": "stay",
       "camera": "zoom_in"
@@ -123,11 +164,14 @@ Only `scenes` and each scene's `narration` are required.
 
 | Field | Values | Default |
 | --- | --- | --- |
+| `title` | text, up to 100 characters | from the file name |
+| `description` | text, up to 1000 characters | built from the script |
+| `hashtags` | 1 to 3, letters/digits/underscores | guessed from the file name |
 | `voice` | any edge-tts voice; UK ones: `en-GB-RyanNeural`, `en-GB-SoniaNeural`, `en-GB-LibbyNeural`, `en-GB-ThomasNeural`, `en-GB-MaisieNeural` | `en-GB-RyanNeural` |
 | `rate` | speaking speed, e.g. `"+10%"`, `"-5%"` | `"+0%"` |
 | `transition` | `slide_left`, `slide_right`, `slide_up`, `slide_down`, `cut` | `slide_left` |
 | `whoosh` | `true` / `false`: sound on each slide | `true` |
-| `music` | `{"path", "volume"}` or `null`. Path is relative to the JSON file. The track is looped, faded in and out. Volume 0-1 | none, volume `0.08` |
+| `music` | `{"path", "volume"}` or `null`. Path is relative to the JSON file. Looped, faded in and out. Volume 0-1 | none, volume `0.08` |
 | `captions` | `enabled`, `max_words` (1-5), `uppercase`, `highlight` (hex colour) | on, 4, false, soft yellow |
 | `source` | `citation` (required), `finding`, `evidence` (`strong`, `moderate`, `mixed`), `caveat`, `link`. Never shown on screen | none |
 
@@ -148,6 +192,8 @@ Only `scenes` and each scene's `narration` are required.
 
 **Props and their options**
 
+![props](docs/showcase_props.png)
+
 | Prop | Options |
 | --- | --- |
 | `phone`, `brain`, `tomato` | none |
@@ -158,6 +204,23 @@ Only `scenes` and each scene's `narration` are required.
 | `checklist` | `items` (1-5 texts, up to 12 characters each), `checked` (how many get ticked) |
 | `bar_chart` | `values` (2-5 numbers, 0-1), `labels` |
 | `arrow` | `direction` (`up`, `down`, `left`, `right`), `color` |
+
+A bar chart draws whatever numbers you give it. If the video cites research,
+use the study's real figures or pick a different prop.
+
+### Hitting a target length
+
+Scene length comes from the audio, so you tune length by editing the script.
+Each render prints a timeline:
+
+```
+  scene 1:   0.0s ->   5.3s ( 5.3s)  bedroom     Rereading your notes feels like revision
+  ...
+  total: 38.2s
+```
+
+`en-GB-RyanNeural` speaks roughly 2.5 words per second including pauses, so a
+40-second video is about 90 words.
 
 ### Rooms and movement
 
@@ -172,20 +235,12 @@ wall and the figure is always drawn facing you, or turned a little to walk.
 New settings go in `stickvid/rooms.py`: write a draw function and add it to
 `_SETTINGS`.
 
-### Hitting a target length
+### Safe zone
 
-Scene length comes from the audio, so you tune length by editing the script.
-The render prints a timeline first:
-
-```
-  scene 1:   0.0s ->   3.8s ( 3.8s)  This study trick works... but not for the reason
-  ...
-  total: 39.4s
-```
-
-`en-GB-RyanNeural` speaks roughly 2.5 words per second including pauses. Speech
-is cached in `.cache/tts`, so only scenes whose narration changed are fetched
-again.
+App UI covers the top 250px and bottom 400px. `config.SAFE_BOX` is
+`(60, 250, 1020, 1520)`. Backgrounds fill the whole frame; the figure, prop,
+keyword note and captions sit inside the box. `--guides` shows the covered
+areas. A `zoom_in` camera enlarges everything, so check it with `--guides`.
 
 ### Music
 
@@ -198,74 +253,39 @@ the narration.
 If your network inspects TLS, set `SSL_CERT_FILE` to the proxy's CA bundle and
 `HTTPS_PROXY` to the proxy address; the narration step picks both up.
 
-## Hand-built test video
-
-```bash
-python make_test_video.py
-```
-
-Writes `output/test_video.mp4`: 10 seconds, figure scrolls on a phone, feels
-guilty, drops the phone and opens a book. Takes about 25 seconds.
-
-| Flag | Effect |
-| --- | --- |
-| `--guides` | tints everything outside the safe zone red, to check your layout |
-| `--fast` | turns supersampling off for a quick, slightly jagged preview |
-| `--out PATH` | output file |
-
-```bash
-python make_showcase.py
-```
-
-Regenerates the two reference sheets above (every pose, expression and prop).
-
-## Layout
+## What's in the repository
 
 ```
+make.py              the command you run: JSON -> MP4 + thumbnail + upload text
+videos/*.json        example videos; videos/SOURCES.md lists their sources
 stickvid/
-  config.py    frame size, fps, safe zone, colours
-  easing.py    easing curves (cubic, back, bounce, elastic...) and lerp helpers
-  timeline.py  Track: keyframed values with eased transitions
-  canvas.py    Canvas: supersampled drawing surface in logical 1080x1920 coords
-  figure.py    StickFigure, Pose, Face, POSES, EXPRESSIONS, walk_cycle
-  props.py     phone, book, clock, brain, battery, thought_bubble, checklist,
-               bar_chart, arrow (+ zzz, backdrop)
-  camera.py    Camera, CameraRig (zoom-in, shake), slide_transition
-  video.py     VideoWriter: pipes raw frames into ffmpeg
-  rooms.py     settings: perspective rooms, a park, and the depth projection
-  fonts/       Poppins and Patrick Hand (SIL Open Font License)
-  spec.py      JSON video format: loading and validation
+  spec.py      JSON format: loading and validation
+  director.py  spec -> scenes -> timeline -> finished MP4
   tts.py       edge-tts narration with per-word timings (cached)
   captions.py  burned-in captions with the spoken word picked out
   audio.py     whoosh synthesis, narration + music mix
-  director.py  spec -> scenes -> timeline -> finished MP4
-render_video.py      render a video from a JSON file
-videos/*.json        example videos; videos/SOURCES.md lists their sources
-make_test_video.py   the hand-built 10-second demo of the Python API
-make_showcase.py     reference sheets
+  rooms.py     settings: perspective rooms, a park, and the depth projection
+  figure.py    StickFigure, Pose, Face, POSES, EXPRESSIONS, walk cycles
+  props.py     phone, book, clock, brain, battery, thought_bubble, checklist,
+               bar_chart, arrow, tomato
+  camera.py    Camera, CameraRig (zoom-in, shake), slide_transition
+  canvas.py    Canvas: supersampled drawing surface in logical 1080x1920 coords
+  timeline.py  Track: keyframed values with eased transitions
+  easing.py    easing curves and lerp helpers
+  video.py     VideoWriter: pipes raw frames into ffmpeg
+  config.py    frame size, fps, safe zone, colours
+  fonts/       Poppins and Patrick Hand (SIL Open Font License)
+blender/             a separate 3D character experiment (see blender/README.md)
+make_test_video.py   hand-animated 10-second demo of the Python API
+make_showcase.py     regenerates the reference sheets in docs/
 ```
 
-## Safe zone
+## Custom animation in Python
 
-App UI covers the top 250px and bottom 400px. `config.SAFE_BOX` is
-`(60, 250, 1020, 1520)`. Backgrounds fill the whole frame; anything the viewer
-has to see goes inside the box. Two things help you stay there:
-
-- `--guides` (or `draw_safe_guides(frame)`) shows the covered areas.
-- The camera zooms around the centre of the safe zone, not the frame, so the
-  thing you zoom in on lands where it is visible.
-
-Zooming enlarges everything, so objects near the edge of the safe zone will
-drift out of it during a zoom. In the demo the clock does this while the
-camera is on the face. Check with `--guides` when you add a zoom.
-
-## Writing a scene in Python
-
-The JSON format covers the common case. For custom animation (like the phone
-drop in the test video), use the Python API directly.
-
-Everything is a function of time `t` in seconds. You schedule transitions
-once, then ask for the state at each frame.
+The JSON format covers the common case. For anything it can't express (like the
+phone drop in `make_test_video.py`), use the Python API directly. Everything is
+a function of time `t` in seconds: schedule transitions once, then ask for the
+state at each frame.
 
 ```python
 from stickvid import Canvas, CameraRig, StickFigure, VideoWriter, config, props
@@ -283,7 +303,7 @@ cam.zoom_to(1.4, center=(540, 800), at=1.0, duration=0.6)
 cam.reset(at=2.5)
 cam.shake(at=3.0, amplitude=20)
 
-with VideoWriter("output/my_video.mp4") as video:
+with VideoWriter("out/my_video.mp4") as video:
     for i in range(5 * config.FPS):
         t = i / config.FPS
         fig.update(t)
@@ -294,29 +314,11 @@ with VideoWriter("output/my_video.mp4") as video:
         video.write(c.to_frame(cam.at(t)))
 ```
 
-**Poses:** `idle`, `talking`, `pointing`, `facepalm`, `shrug`, `sleeping`,
-`walking`, plus `scrolling`, `hold_book`, `read_book` for the demo. A pose is a
-`Pose` dataclass of joint angles; add your own to `POSES` or pass a `Pose`
-straight to `pose_to`. The angle convention is at the top of `figure.py`.
-
-**Expressions:** `neutral`, `happy`, `stressed`, `smug`, `tired`, plus `guilty`
-and `asleep`. Same idea: a `Face` dataclass (lids, brows, pupils, mouth curve,
-sweat...) that blends smoothly between any two expressions.
-
-**Holding props:** joint positions are in `fig.joints` after `update()`
-(`r_hand`, `l_hand`, `head`, ...). Draw the prop there, then call
-`fig.draw_hands(c)` so the hand sits on top. See `ScrollScene._held_phone`.
-
-**Slide transition:** render both scenes and combine them:
-`slide_transition(frame_a, frame_b, t, start, duration, "left")`.
-
-## Notes
-
-- Frames are drawn at 2x and scaled down for anti-aliasing (`config.SSAA`).
-- Output is H.264 / yuv420p / faststart, with AAC audio for JSON videos. The
-  hand-built test video is silent.
-- Text uses the two bundled fonts: Poppins for captions and labels, Patrick
-  Hand for the keyword notes. To change them, edit `_FONT_CANDIDATES` in
-  `canvas.py`.
-- The figure's jumper and hair colours are `StickFigure(shirt=..., hair=...)`;
-  pass `None` for either to get the bare stick figure back.
+- A pose is a `Pose` dataclass of joint angles; add your own to `POSES` or pass
+  one straight to `pose_to`. The angle convention is at the top of `figure.py`.
+- An expression is a `Face` dataclass (lids, brows, pupils, mouth curve, sweat)
+  that blends smoothly between any two.
+- Joint positions are in `fig.joints` after `update()`. Draw a held prop at
+  `fig.joints["r_hand"]`, then call `fig.draw_hands(c)` so the hand sits on top.
+- The jumper and hair colours are `StickFigure(shirt=..., hair=...)`; pass
+  `None` for either to get the bare stick figure.

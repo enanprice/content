@@ -24,6 +24,8 @@ import os
 import re
 from dataclasses import replace
 
+from PIL import Image
+
 from . import config, props, rooms, tts
 from .audio import Clip, make_whoosh, mux
 from .camera import CameraRig, slide_transition
@@ -305,13 +307,33 @@ class Video:
             clips += [Clip(whoosh, s - TRANSITION / 2 - 0.05, WHOOSH_VOLUME) for s in self.starts[1:]]
         return clips
 
-    def render(self, out_path, guides=False, log=print):
+    def thumbnail(self):
+        """A still from the first scene, full size and without captions.
+
+        Taken once the keyword note and prop have appeared, so the frame
+        says what the video is about.
+        """
+        clip = self.clips[0]
+        t = min(max(clip.keyword_at + 0.7, 1.3), max(clip.duration - 0.2, 0.1))
+        return clip.render(t)
+
+    def render(self, out_path, guides=False, log=print, size=None, crf=18, preset="medium"):
+        """Render the video with sound.
+
+        size  (width, height) to scale frames down to, for previews; the
+              default is the full frame. Frame rate follows config.FPS.
+        """
         os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
         silent = re.sub(r"\.mp4$", "", out_path) + ".silent.mp4"
-        with VideoWriter(silent) as video:
+        width, height = size or (config.WIDTH, config.HEIGHT)
+        with VideoWriter(silent, width, height, config.FPS, crf=crf, preset=preset) as video:
             for n in range(self.frames):
                 img = self.frame(n / config.FPS)
-                video.write(draw_safe_guides(img) if guides else img)
+                if guides:
+                    img = draw_safe_guides(img)
+                if size:
+                    img = img.resize(size, Image.Resampling.BILINEAR)
+                video.write(img)
                 if (n + 1) % (config.FPS * 5) == 0 or n + 1 == self.frames:
                     log(f"  frame {n + 1}/{self.frames}")
         try:

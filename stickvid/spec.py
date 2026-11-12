@@ -243,7 +243,8 @@ def _check_prop(ck, path, value):
 # ---------------------------------------------------------------------------
 # the validator
 # ---------------------------------------------------------------------------
-_TOP_FIELDS = {"title", "voice", "rate", "transition", "whoosh", "music", "captions", "source", "scenes"}
+_TOP_FIELDS = {"title", "description", "hashtags", "voice", "rate", "transition", "whoosh", "music",
+               "captions", "source", "scenes"}
 _SCENE_FIELDS = {"narration", "pose", "expression", "prop", "keyword", "camera", "background",
                  "setting", "time", "move"}
 _SOURCE_FIELDS = {"citation", "finding", "evidence", "caveat", "link"}
@@ -265,6 +266,7 @@ def validate(data, base_dir=".", source="spec"):
     spec = {
         "title": "", "voice": DEFAULT_VOICE, "rate": "+0%", "transition": "slide_left",
         "whoosh": True, "music": None, "source": None, "scenes": [],
+        "description": "", "hashtags": [],
         "captions": {"enabled": True, "max_words": 4, "uppercase": False, "highlight": (255, 221, 120)},
     }
 
@@ -333,6 +335,21 @@ def validate(data, base_dir=".", source="spec"):
                     out["max_words"] = int(n)
             if "highlight" in captions:
                 out["highlight"] = ck.color("captions.highlight", captions["highlight"]) or out["highlight"]
+
+    # --- upload text: optional; make.py writes sensible defaults without them ---
+    if "description" in data:
+        spec["description"] = ck.text("description", data["description"], max_len=1000, allow_empty=True) or ""
+    if "hashtags" in data:
+        tags = data["hashtags"]
+        if not isinstance(tags, list) or not 1 <= len(tags) <= 3:
+            ck.err("hashtags", "must be a list of 1 to 3 hashtags.")
+        else:
+            for i, tag in enumerate(tags):
+                tag = ck.text(f"hashtags[{i}]", tag, max_len=40)
+                if tag and not re.match(r"^#?[A-Za-z0-9_]+$", tag):
+                    ck.err(f"hashtags[{i}]", f'"{tag}" is not valid. Use letters, digits and underscores only, e.g. "#StudyTips".')
+                elif tag:
+                    spec["hashtags"].append("#" + tag.lstrip("#"))
 
     # --- source: where the video's claims come from. Not shown on screen;
     # it travels with the script so the claims can be checked. ---
