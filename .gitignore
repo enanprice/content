@@ -12,3 +12,4 @@ blender/character_out/*
 blender/town_out/*
 !blender/town_out/establishing_midnight.png
 !blender/town_out/establishing_dawn.png
+blender/shots_out/

@@ -718,21 +718,44 @@ def drive_bus(bus, path, start_frame, end_frame, start=0.0, end=1.0):
 
     length = path.data.splines[0].calc_length()
     spin = -(end - start) * length / WHEEL_RADIUS   # rolling without slipping; forward is negative about X
-    edit = bpy.context.preferences.edit
-    saved, edit.keyframe_new_interpolation_type = edit.keyframe_new_interpolation_type, "LINEAR"
-    try:
-        for frame, factor, angle in ((start_frame, start, 0.0), (end_frame, end, spin)):
-            follow.offset_factor = factor
-            follow.keyframe_insert("offset_factor", frame=frame)
-            for obj in descendants(bus):
-                if obj.get("wheel"):
-                    obj.rotation_euler[0] = obj.get("spin_base", 0.0) + angle
-                    obj.keyframe_insert("rotation_euler", index=0, frame=frame)
-        for obj in descendants(bus):                # so a later drive carries on from this wheel angle
+    for frame, factor, angle in ((start_frame, start, 0.0), (end_frame, end, spin)):
+        follow.offset_factor = factor
+        _key_linear(follow, "offset_factor", frame)
+        for obj in descendants(bus):
             if obj.get("wheel"):
-                obj["spin_base"] = obj.get("spin_base", 0.0) + spin
-    finally:
-        edit.keyframe_new_interpolation_type = saved
+                obj.rotation_euler[0] = obj.get("spin_base", 0.0) + angle
+                _key_linear(obj, "rotation_euler", frame, index=0)
+    for obj in descendants(bus):                    # so a later drive carries on from this wheel angle
+        if obj.get("wheel"):
+            obj["spin_base"] = obj.get("spin_base", 0.0) + spin
+
+
+def _fcurves(id_block):
+    """The animation curves of an object, across Blender versions."""
+    data = id_block.animation_data
+    action = data.action if data else None
+    if action is None:
+        return []
+    if hasattr(action, "fcurves"):                  # Blender 4.x
+        return action.fcurves
+    for layer in action.layers:                     # Blender 5: layered actions
+        for strip in layer.strips:
+            bag = strip.channelbag(data.action_slot)
+            if bag:
+                return bag.fcurves
+    return []
+
+
+def _key_linear(target, prop, frame, index=-1):
+    """Insert a keyframe that interpolates in a straight line (constant speed).
+    Keys inserted from a script are always Bezier, so the type is set afterwards."""
+    target.keyframe_insert(prop, frame=frame, index=index)
+    path = target.path_from_id(prop)
+    for curve in _fcurves(target.id_data):
+        if curve.data_path == path and (index < 0 or curve.array_index == index):
+            for point in curve.keyframe_points:
+                if abs(point.co[0] - frame) < 0.5:
+                    point.interpolation = "LINEAR"
 
 
 # ---------------------------------------------------------------------------

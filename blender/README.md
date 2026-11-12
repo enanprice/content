@@ -8,9 +8,11 @@ Two scripts, each run on its own with `blender -b -P <script>`:
   props, lighting presets) and renders an establishing shot at midnight and
   again at dawn. See [The town](#the-town) below.
 
+- `shots.py` renders a whole episode from a JSON shot list, using the town
+  and the character together. See [Shot lists](#shot-lists) at the end.
+
 They are separate from the 2D `stickvid` pipeline in the rest of this
-repository, and from each other: nothing here is wired into `make.py`, and the
-character is not yet placed in the town.
+repository: nothing here is wired into `make.py`.
 
 Tested with Blender 4.2.3 LTS on Linux, rendering with Eevee on the CPU
 (software OpenGL). It has not been run on Windows, macOS or a GPU.
@@ -361,3 +363,107 @@ the `LIGHTING` dict near the bottom of the script.
 - `drive_bus` moves at constant speed with no acceleration or braking.
 - Building interiors are empty and the glass is opaque: you cannot see in.
 - The loaves sit on a table outside the bakery, not in the window, for that reason.
+
+---
+
+# Shot lists
+
+An episode is a JSON file: a list of shots. `shots.py` builds the town and the
+character, animates every shot and renders PNG frames.
+
+```bash
+python shotlist.py episodes/episode1.json
+```
+
+checks the file from an ordinary terminal (no Blender needed), and
+
+```bash
+blender -b -P shots.py -- episodes/episode1.json --stills --preview
+```
+
+renders one small frame per shot: a storyboard, about a minute on a CPU. Do
+that before any full render.
+
+```bash
+blender -b -P shots.py -- episodes/episode1.json --preview
+```
+
+```bash
+blender -b -P shots.py -- episodes/episode1.json
+```
+
+| Option | Effect |
+| --- | --- |
+| (none) | 1080x1920, 30 fps, every frame |
+| `--preview` | 540x960, every second frame |
+| `--stills` | one frame from the middle of each shot |
+| `--shot N` | only shot N; repeat for several |
+| `--check` | validate and print the timeline (frame range per shot) |
+| `--engine`, `--samples`, `--out` | as for the other scripts |
+
+Frames go to `shots_out/<name>/frames/frame_0001.png ...`, numbered through
+the whole episode, with `scene.blend` beside them. The frames have no sound.
+The ffmpeg command that joins them into a video is printed at the end.
+
+`episodes/episode1.json` is a **placeholder**: eight shots I made up to
+exercise every feature. Replace them with your own.
+
+## A shot
+
+```json
+{
+  "name": "3. He notices the clock",
+  "duration": 3.0,
+  "lighting": "midnight",
+  "clock": "11:59",
+  "camera": { "move": "orbit", "target": "character", "position": [2.6, 1.2, 1.9], "degrees": 35, "lens": 35 },
+  "character": { "pose": "idle", "expression": "surprised", "position": [4.8, 4.0], "heading": -70, "look_at": "clock" },
+  "props": { "hide": ["bus"] },
+  "vehicle": { "path": [[5.1, 23.6], [1.75, 14.0], [1.75, -4.0]], "speed": 6.5 },
+  "text": "Twelve."
+}
+```
+
+Only `duration` is required.
+
+| Field | Values |
+| --- | --- |
+| `duration` | seconds, or `"auto"` to use the length of the file named in `audio` |
+| `lighting` | `day`, `dawn`, `midnight` |
+| `clock` | time on the clock tower, e.g. `"5:40"`. Stays until changed |
+| `camera.move` | `static`, `push_in`, `pull_back`, `orbit`, `follow`, `handheld_shake` |
+| `camera.target` | what it looks at: `bakery`, `clock_tower`, `house`, `bus_depot`, `school`, `clock`, `bus`, `character`, `street`, or `[x, y, z]` |
+| `camera.position` | where it starts, `[x, y, z]`. Left out, it stands 10 m from the target towards the near end of the street |
+| `camera.amount` | push_in / pull_back: share of the distance to the target (default 0.35) |
+| `camera.degrees` | orbit sweep (default 40) |
+| `camera.lens` | focal length in mm (default 28) |
+| `character` | leave the block out and he is off screen for that shot |
+| `character.pose` | `idle`, `talking`, `point`, `shrug`, `panic`, `sleepy`, `sit_driving` |
+| `character.expression` | `neutral`, `surprised`, `shocked`, `worried`, `happy`, `pleased`, `talking`, `sleepy`, `deadpan`, or `{"eyes": ..., "mouth": ...}` |
+| `character.position`, `heading` | where he stands, `[x, y]`, and which way he faces (0 = towards -Y, 90 = towards +X) |
+| `character.path` | `{"points": [[x, y], ...], "speed": 1.4}`: he walks it, then takes the pose |
+| `character.look_at` | a target name or `[x, y, z]` |
+| `props.hide`, `props.show` | `bakery`, `clock_tower`, `house`, `bus_depot`, `school`, `bus`, `streetlamps`, `trees`, `fences`, `loaves`, `moon`. Stays in force for later shots |
+| `vehicle` | `{"path": [[x, y], ...], "speed": 6}`: the bus drives it. Without this the bus is parked outside the depot |
+| `text` | on-screen caption, up to 90 characters, lower-middle of the frame |
+
+**Map.** Metres. The street runs along +Y from y = -6 (near end) to y = 40
+(the school). The road is x = -3.5 to 3.5. Pavements run out to x = 6.1 on
+each side, where the building fronts are: bakery and clock tower on the left
+(negative x) at y = 5 and y = 21, house and bus depot on the right at y = 5
+and y = 22.
+
+**`follow`** keeps the camera at a fixed offset from the character or the bus.
+**`handheld_shake`** is a fixed camera with a small drifting wobble.
+
+## Limits
+
+- Each shot is one pose and one expression. A change mid-shot is two shots.
+- If a walk takes longer than its shot, he is still walking at the cut. The
+  runner prints a note when that happens.
+- Hands and feet can't be pinned (FK rig), so `sit_driving` does not put him
+  in the bus: there is no seat or wheel, and the bus windows are opaque.
+- Audio only sets `duration: "auto"`. It is not attached to the frames.
+- `scene.blend` holds the animation, but lighting, clock time and hidden
+  props are switched per shot at render time, so the file shows the last
+  shot's settings.

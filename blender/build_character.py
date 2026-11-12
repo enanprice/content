@@ -482,27 +482,63 @@ def _apply(bone_name, rot=(0, 0, 0), loc=(0, 0, 0), frame=None):
     pose_bone.rotation_quaternion = quat
     pose_bone.location = rest.conjugated() @ Vector(loc)
     if frame is not None:
-        pose_bone.keyframe_insert("rotation_quaternion", frame=frame)
-        pose_bone.keyframe_insert("location", frame=frame)
+        _insert_key(pose_bone, "rotation_quaternion", frame)
+        _insert_key(pose_bone, "location", frame)
+
+
+_curve_kind = "BEZIER"      # how the next keys interpolate; changed with `with _interpolation(...)`
 
 
 class _interpolation:
-    """`with _interpolation("LINEAR"):` - keys inserted inside use that curve type.
-
-    New keyframes take their curve type from Blender's preferences, so this
-    switches the preference and puts it back afterwards.
-    """
+    """`with _interpolation("LINEAR"):` - keys inserted inside use that curve type
+    ("BEZIER" eases, "LINEAR" moves at constant speed, "CONSTANT" jumps)."""
 
     def __init__(self, kind):
         self.kind = kind
 
     def __enter__(self):
-        edit = bpy.context.preferences.edit
-        self.saved = edit.keyframe_new_interpolation_type
-        edit.keyframe_new_interpolation_type = self.kind
+        global _curve_kind
+        self.saved, _curve_kind = _curve_kind, self.kind
 
     def __exit__(self, *exc):
-        bpy.context.preferences.edit.keyframe_new_interpolation_type = self.saved
+        global _curve_kind
+        _curve_kind = self.saved
+
+
+def _fcurves(id_block):
+    """The animation curves of an object, across Blender versions."""
+    data = id_block.animation_data
+    action = data.action if data else None
+    if action is None:
+        return []
+    if hasattr(action, "fcurves"):                    # Blender 4.x
+        return action.fcurves
+    slot = data.action_slot                           # Blender 5: curves live in layered "channelbags"
+    for layer in action.layers:
+        for strip in layer.strips:
+            bag = strip.channelbag(slot)
+            if bag:
+                return bag.fcurves
+    return []
+
+
+def _insert_key(target, prop, frame, index=-1):
+    """Insert a keyframe and give it the current curve type.
+
+    Blender ignores the "default interpolation" preference for keys inserted
+    from a script (they always come out Bezier), so the type is set on the
+    new key itself.
+    """
+    target.keyframe_insert(prop, frame=frame, index=index)
+    path = target.path_from_id(prop)
+    for curve in _fcurves(target.id_data):
+        if curve.data_path != path or (index >= 0 and curve.array_index != index):
+            continue
+        for point in curve.keyframe_points:
+            if abs(point.co[0] - frame) < 0.5:
+                point.interpolation = _curve_kind
+                point.handle_left_type = point.handle_right_type = "AUTO_CLAMPED"   # Bezier: ease, no overshoot
+        curve.update()
 
 
 def _apply_pose(pose, frame):
@@ -544,8 +580,8 @@ def set_face(eyes=None, mouth=None, frame=None):
             for style, obj in FACE[part].items():
                 obj.hide_render = obj.hide_viewport = style != choice
                 if frame is not None:
-                    obj.keyframe_insert("hide_render", frame=frame)
-                    obj.keyframe_insert("hide_viewport", frame=frame)
+                    _insert_key(obj, "hide_render", frame)
+                    _insert_key(obj, "hide_viewport", frame)
 
 
 def set_root(frame, position, heading=0.0, interpolation="BEZIER"):
