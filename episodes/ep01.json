@@ -1,18 +1,18 @@
 {
-  "title": "Episode 1 (PLACEHOLDER SHOTS AND NARRATION - replace with your own)",
+  "title": "Why Dunmere goes dark at midnight",
   "log": {
-    "structure": "mystery",
-    "lead_character": "the man in the yellow hoodie",
+    "structure": "countdown",
+    "lead_character": "Gerald",
     "lead_building": "clock_tower",
-    "ending": "open question"
+    "ending": "twist"
   },
   "voice": "en-GB-RyanNeural",
   "shots": [
     {
-      "name": "1. The street at midnight",
-      "narration": "At midnight, the street was quiet.",
+      "name": "1. The rule",
+      "narration": "Every night at midnight, every light in Dunmere goes out. For exactly one minute.",
       "lighting": "midnight",
-      "clock": "11:58",
+      "clock": "11:57",
       "camera": {
         "move": "push_in",
         "target": "clock",
@@ -21,13 +21,13 @@
           -9.5,
           2.3
         ],
-        "amount": 0.25,
-        "lens": 24
+        "lens": 24,
+        "amount": 0.25
       }
     },
     {
-      "name": "2. He walks home",
-      "narration": "One person was still walking home.",
+      "name": "2. Gerald",
+      "narration": "Gerald moved here on Monday, and nobody has told him why.",
       "lighting": "midnight",
       "camera": {
         "move": "follow",
@@ -41,7 +41,7 @@
       },
       "character": {
         "pose": "idle",
-        "expression": "sleepy",
+        "expression": "worried",
         "path": {
           "points": [
             [
@@ -58,10 +58,10 @@
       }
     },
     {
-      "name": "3. He notices the clock",
-      "narration": "He looked up at the clock tower.",
+      "name": "3. Three minutes",
+      "narration": "So tonight he is going to find out. He has three minutes.",
       "lighting": "midnight",
-      "clock": "11:59",
+      "clock": "11:57",
       "camera": {
         "move": "orbit",
         "target": "character",
@@ -70,46 +70,45 @@
           1.2,
           1.9
         ],
-        "degrees": 35,
-        "lens": 35
+        "lens": 35,
+        "degrees": 30
       },
       "character": {
-        "pose": "idle",
-        "expression": "surprised",
+        "pose": "point",
+        "expression": "neutral",
+        "look_at": "clock",
         "position": [
           4.8,
           4.0
         ],
-        "heading": -70,
-        "look_at": "clock"
+        "heading": -70
       }
     },
     {
-      "name": "4. The clock strikes",
-      "narration": "Twelve.",
-      "sfx": [
-        "clock_chime"
-      ],
+      "name": "4. The bakery",
+      "narration": "Three minutes left. The bakery ovens are still on.",
       "lighting": "midnight",
-      "clock": "12:00",
       "camera": {
-        "move": "static",
-        "target": "clock",
+        "move": "push_in",
+        "target": "bakery",
         "position": [
-          -1.5,
-          14.5,
-          4.5
+          3.2,
+          -2.5,
+          2.2
         ],
-        "lens": 50
+        "lens": 28,
+        "amount": 0.3
       }
     },
     {
-      "name": "5. The bus leaves the depot",
-      "narration": "Then the last bus left the depot.",
+      "name": "5. The last bus",
+      "narration": "Two minutes. The last bus pulls out of the depot, right on time.",
       "sfx": [
         "bus_engine"
       ],
       "lighting": "midnight",
+      "clock": "11:58",
+      "duration": 4.5,
       "camera": {
         "move": "handheld_shake",
         "target": "bus_depot",
@@ -140,38 +139,22 @@
           ]
         ],
         "speed": 6.5
-      },
-      "duration": 4.5
+      }
     },
     {
-      "name": "6. Too close",
-      "narration": "It passed a little closer than he liked.",
-      "sfx": [
-        {
-          "tag": "whoosh",
-          "at": 0.4
-        }
-      ],
+      "name": "6. The school",
+      "narration": "At the end of the road, the school still has its lights on.",
       "lighting": "midnight",
       "camera": {
         "move": "push_in",
-        "target": "character",
+        "target": "school",
         "position": [
-          2.4,
-          1.0,
-          1.6
+          0.0,
+          16.0,
+          2.6
         ],
-        "amount": 0.3,
-        "lens": 35
-      },
-      "character": {
-        "pose": "panic",
-        "expression": "shocked",
-        "position": [
-          4.8,
-          4.0
-        ],
-        "heading": -40
+        "lens": 35,
+        "amount": 0.3
       },
       "props": {
         "hide": [
@@ -180,63 +163,228 @@
       }
     },
     {
-      "name": "7. Dawn at the bakery",
-      "narration": "By dawn, only the bakery was awake.",
-      "lighting": "dawn",
-      "clock": "5:40",
+      "name": "7. One minute",
+      "narration": "One minute. Gerald reaches the clock tower and looks up.",
+      "lighting": "midnight",
+      "clock": "11:59",
       "camera": {
-        "move": "pull_back",
-        "target": "bakery",
+        "move": "follow",
+        "target": "character",
         "position": [
-          3.0,
-          -4.0,
-          2.4
+          -4.4,
+          20.5,
+          1.5
         ],
-        "amount": 0.4,
-        "lens": 28
+        "lens": 35
       },
       "character": {
-        "pose": "sleepy",
-        "expression": "sleepy",
-        "position": [
-          -4.9,
-          2.4
-        ],
-        "heading": -60
-      },
-      "props": {
-        "show": [
-          "bus"
-        ]
+        "pose": "idle",
+        "expression": "worried",
+        "look_at": "clock",
+        "path": {
+          "points": [
+            [
+              -5.3,
+              11.0
+            ],
+            [
+              -5.3,
+              17.0
+            ]
+          ],
+          "speed": 1.6
+        }
       }
     },
     {
-      "name": "8. Shrug",
-      "narration": "And nobody could say what any of it meant.",
-      "lighting": "dawn",
+      "name": "8. Ten seconds",
+      "narration": "Ten seconds. Nothing looks broken.",
+      "lighting": "midnight",
+      "clock": "11:59",
+      "camera": {
+        "move": "push_in",
+        "target": "clock",
+        "position": [
+          -1.5,
+          14.5,
+          4.5
+        ],
+        "lens": 50,
+        "amount": 0.3
+      }
+    },
+    {
+      "name": "9. Twelve",
+      "narration": "Twelve.",
+      "sfx": [
+        "clock_chime"
+      ],
+      "lighting": "midnight",
+      "clock": "12:00",
+      "camera": {
+        "move": "static",
+        "target": "clock",
+        "position": [
+          -1.5,
+          14.5,
+          4.5
+        ],
+        "lens": 50
+      }
+    },
+    {
+      "name": "10. Blackout",
+      "narration": "And the whole town goes dark. The bakery. The school. Every streetlamp.",
+      "sfx": [
+        {
+          "tag": "whoosh",
+          "at": 0.2
+        }
+      ],
+      "lighting": "midnight",
+      "lights": "off",
+      "clock": "12:00",
+      "camera": {
+        "move": "pull_back",
+        "target": "street",
+        "position": [
+          1.9,
+          -7.0,
+          3.2
+        ],
+        "lens": 24,
+        "amount": 0.4
+      }
+    },
+    {
+      "name": "11. No fault",
+      "narration": "Gerald checks the tower for a fault. There isn't one.",
+      "lighting": "midnight",
+      "lights": "off",
+      "camera": {
+        "move": "push_in",
+        "target": "character",
+        "position": [
+          -2.2,
+          14.0,
+          1.6
+        ],
+        "lens": 35,
+        "amount": 0.3
+      },
+      "character": {
+        "pose": "panic",
+        "expression": "shocked",
+        "position": [
+          -5.3,
+          17.0
+        ],
+        "heading": -120
+      }
+    },
+    {
+      "name": "12. By hand",
+      "narration": "Because nothing failed. Every person in Dunmere switched their lights off by hand.",
+      "lighting": "midnight",
+      "lights": "off",
+      "camera": {
+        "move": "orbit",
+        "target": "house",
+        "position": [
+          -2.5,
+          -2.0,
+          2.4
+        ],
+        "lens": 28,
+        "degrees": 25
+      }
+    },
+    {
+      "name": "13. The sky",
+      "narration": "For one minute a night, the town gives up its lights, so that it can see the sky.",
+      "lighting": "midnight",
+      "lights": "off",
+      "camera": {
+        "move": "pull_back",
+        "target": [
+          -4.8,
+          19.0,
+          6.0
+        ],
+        "position": [
+          -1.8,
+          13.5,
+          1.2
+        ],
+        "lens": 26,
+        "amount": 0.35
+      },
+      "character": {
+        "pose": "idle",
+        "expression": "surprised",
+        "look_at": [
+          -34,
+          120,
+          62
+        ],
+        "position": [
+          -5.3,
+          17.0
+        ],
+        "heading": -10
+      }
+    },
+    {
+      "name": "14. Back on",
+      "narration": "Then the minute ends, and Dunmere comes back on.",
+      "sfx": [
+        {
+          "tag": "whoosh",
+          "at": 0.2
+        }
+      ],
+      "lighting": "midnight",
+      "lights": "on",
+      "clock": "12:01",
+      "camera": {
+        "move": "push_in",
+        "target": "street",
+        "position": [
+          1.9,
+          -9.5,
+          2.6
+        ],
+        "lens": 24,
+        "amount": 0.2
+      }
+    },
+    {
+      "name": "15. Tomorrow",
+      "narration": "Tomorrow night, Gerald will switch his off too.",
+      "lighting": "midnight",
       "camera": {
         "move": "static",
         "target": "character",
         "position": [
-          -3.9,
-          -0.6,
+          -2.6,
+          15.0,
           1.6
         ],
         "lens": 40
       },
       "character": {
-        "pose": "shrug",
-        "expression": "deadpan",
-        "position": [
-          -4.9,
-          2.4
-        ],
-        "heading": 20,
+        "pose": "idle",
+        "expression": "pleased",
         "look_at": [
-          -3.9,
-          -0.6,
+          -2.6,
+          15.0,
           1.6
-        ]
+        ],
+        "position": [
+          -5.3,
+          17.0
+        ],
+        "heading": -110
       }
     }
   ]

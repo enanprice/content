@@ -69,7 +69,7 @@ Every episode carries a `log` block describing what kind of episode it is:
 ```json
 "log": {
   "structure": "mystery",
-  "lead_character": "the man in the yellow hoodie",
+  "lead_character": "Gerald",
   "lead_building": "clock_tower",
   "ending": "open question"
 }

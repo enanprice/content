@@ -27,6 +27,8 @@ Format
       "duration": 3.5,                         seconds (a minimum, if there is narration), or "auto" = length of "audio"
       "audio": "audio/shot1.mp3",              only read when duration is "auto"
       "lighting": "midnight",                  day / dawn / midnight
+      "lights": "off",                         optional: "on" / "off" / ["bakery"] = only these buildings lit;
+                                               overrides the preset's windows and streetlamps (a town blackout)
       "clock": "12:00",                        optional: time on the clock tower
       "camera": {
         "move": "push_in",                     static / push_in / pull_back / orbit / follow / handheld_shake
@@ -188,7 +190,7 @@ class _Check:
         return pts
 
 
-_SHOT = {"name", "duration", "audio", "narration", "sfx", "lighting", "clock", "camera", "character",
+_SHOT = {"name", "duration", "audio", "narration", "sfx", "lighting", "lights", "clock", "camera", "character",
          "props", "vehicle", "text"}
 _CAMERA = {"move", "target", "position", "amount", "degrees", "lens"}
 _CHARACTER = {"pose", "expression", "position", "heading", "path", "look_at"}
@@ -267,7 +269,7 @@ def validate(data, base_dir=".", source="shot list"):
             continue
         ck.keys(p, shot, _SHOT)
         s = {"name": shot.get("name") if isinstance(shot.get("name"), str) else f"shot {i + 1}",
-             "duration": None, "audio": None, "narration": None, "sfx": [], "lighting": "day", "clock": None,
+             "duration": None, "audio": None, "narration": None, "sfx": [], "lighting": "day", "lights": None, "clock": None,
              "camera": {"move": "static", "target": "street", "position": None, "amount": 0.35,
                         "degrees": 40.0, "lens": 28.0},
              "character": None, "show": [], "hide": [], "vehicle": None, "text": None}
@@ -323,6 +325,16 @@ def validate(data, base_dir=".", source="shot list"):
 
         if "lighting" in shot:
             s["lighting"] = ck.choice(f"{p}.lighting", shot["lighting"], LIGHTING) or "day"
+
+        # lights: override which windows and streetlamps are lit in this shot
+        if shot.get("lights") is not None:
+            lights = shot["lights"]
+            if lights in ("on", "off"):
+                s["lights"] = lights
+            elif isinstance(lights, list) and lights and all(b in BUILDINGS for b in lights):
+                s["lights"] = list(lights)
+            else:
+                ck.err(f"{p}.lights", f'must be "on", "off", or a list of buildings to keep lit from {BUILDINGS}.')
 
         if shot.get("clock") is not None:
             clock = shot["clock"]

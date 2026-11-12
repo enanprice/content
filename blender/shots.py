@@ -320,6 +320,13 @@ def enter_shot(entry, town, plan, hidden):
         if name != "moon":
             set_hidden(group(town, name), name in hidden)
     town_kit.set_lighting(shot["lighting"], town)       # also decides whether the moon is out
+    if shot["lights"] is not None:                      # town-wide override: blackout, all on, or named buildings
+        lights = shot["lights"]
+        for key in shotlist.BUILDINGS:
+            town_kit.set_windows(town[key], on=lights == "on" or (isinstance(lights, list) and key in lights))
+        for bulb, light in town_kit.LAMPS:
+            town_kit.set_glow(bulb, lights == "on", 4.0)
+            light.data.energy = town_kit.LIGHTING["midnight"]["lamps"] if lights == "on" else 0.0
     if "moon" in hidden:
         set_hidden(group(town, "moon"), True)
     if shot["clock"]:
