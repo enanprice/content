@@ -111,14 +111,15 @@ def is_episode(path):
         return False                                 # let the normal loader report the problem
 
 
-def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False, blender=None):
+def build(path, out_dir, preview=False, use_tts=True, guides=False, quiet=False, blender=None, fps=30):
     """Render one spec. Returns (name, duration, seconds_taken)."""
     started = time.time()
     name = os.path.splitext(os.path.basename(path))[0]
     log = (lambda *a: None) if quiet else print
     if is_episode(path):
         from stickvid import episode
-        name, duration = episode.build(path, out_dir, preview=preview, use_tts=use_tts, blender=blender, log=log)
+        name, duration = episode.build(path, out_dir, preview=preview, use_tts=use_tts, blender=blender,
+                                       log=print, fps=fps)     # always print: the variation report matters
         return name, duration, time.time() - started
     spec = load(path)
     os.makedirs(out_dir, exist_ok=True)
@@ -164,6 +165,8 @@ def main():
     ap.add_argument("--guides", action="store_true", help="overlay the unsafe zones in red")
     ap.add_argument("--jobs", type=int, default=1, help="videos to render at once (default 1)")
     ap.add_argument("--blender", default=None, help="path to the Blender program (3D episodes only)")
+    ap.add_argument("--fps", type=int, default=30, choices=[24, 30, 50, 60],
+                    help="frame rate of 3D episodes (default 30; 60 is smoother and twice the render time)")
     args = ap.parse_args()
 
     # Validate everything up front.
@@ -173,13 +176,17 @@ def main():
             if is_episode(path):
                 from stickvid import episode
                 spec = episode.shotlist.load(path)
+                _, refusal, report = episode.variation(path, spec)
                 if args.check:
                     print(f"{path}: OK ({len(spec['shots'])} shots, 3D episode)")
+                    print(report)
+                if refusal:
+                    raise ValueError(refusal)
                 continue
             spec = load(path)
             if args.check:
                 print(f"{path}: OK ({len(spec['scenes'])} scenes)")
-        except (SpecError, ValueError) as e:
+        except (SpecError, ValueError, RuntimeError) as e:
             print(e, file=sys.stderr)
             problems += 1
     if problems:
@@ -188,7 +195,7 @@ def main():
         return
 
     kwargs = dict(out_dir=args.out, preview=args.preview, use_tts=not args.no_tts, guides=args.guides,
-                  blender=args.blender)
+                  blender=args.blender, fps=args.fps)
     jobs = [(path, dict(kwargs, quiet=args.jobs > 1)) for path in args.specs]
     failed = []
     started = time.time()

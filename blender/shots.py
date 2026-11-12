@@ -329,6 +329,32 @@ def enter_shot(entry, town, plan, hidden):
             obj.hide_render = obj.hide_viewport = other is not entry
 
 
+def add_glow(scene):
+    """Soft halo around bright things (lit windows, lamps, the moon).
+
+    Eevee 4.2 has no bloom setting, so this is a Glare node in the
+    compositor. If this Blender version's compositor works differently, the
+    glow is skipped and the render carries on without it.
+    """
+    try:
+        scene.use_nodes = True
+        tree = scene.node_tree
+        tree.nodes.clear()
+        layers = tree.nodes.new("CompositorNodeRLayers")
+        glare = tree.nodes.new("CompositorNodeGlare")
+        glare.glare_type = "FOG_GLOW"
+        glare.quality = "HIGH"
+        glare.threshold = 1.0                        # only what is brighter than white glows
+        glare.size = 7
+        glare.mix = -0.55                            # mostly the original picture, a little halo
+        out = tree.nodes.new("CompositorNodeComposite")
+        tree.links.new(layers.outputs["Image"], glare.inputs["Image"])
+        tree.links.new(glare.outputs["Image"], out.inputs["Image"])
+    except Exception as e:                           # cosmetic only: never fail a render over it
+        scene.use_nodes = False
+        print(f"  note: glow pass skipped ({type(e).__name__}: {e})")
+
+
 def parse_args():
     import argparse
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -340,12 +366,17 @@ def parse_args():
     ap.add_argument("--check", action="store_true", help="validate and print the timeline only")
     ap.add_argument("--engine", choices=["eevee", "workbench", "cycles"], default="eevee")
     ap.add_argument("--samples", type=int, default=None)
+    ap.add_argument("--fps", type=int, default=30, help="frames per second (default 30; 60 is smoother and twice the work)")
     ap.add_argument("--out", default=None)
     return ap.parse_args(argv)
 
 
 def main():
+    global FPS
     args = parse_args()
+    if not 12 <= args.fps <= 120:
+        sys.exit("--fps must be between 12 and 120.")
+    FPS = args.fps
     try:
         spec = shotlist.load(args.spec)
     except shotlist.ShotListError as e:
@@ -360,10 +391,12 @@ def main():
 
     name = os.path.splitext(os.path.basename(args.spec))[0]
     out_dir = os.path.abspath(args.out) if args.out else os.path.join(HERE, "shots_out", name)
-    samples = args.samples or (8 if args.preview else 24)
+    samples = args.samples or (12 if args.preview else 32)
 
     town, plan = build_episode(spec, args.engine, samples)
     scene = bpy.context.scene
+    if args.engine != "workbench":
+        add_glow(scene)
     total = scene.frame_end
     print(f"timeline: {len(plan)} shots, {total} frames, {total / FPS:.1f}s at {FPS} fps")
     if args.check:

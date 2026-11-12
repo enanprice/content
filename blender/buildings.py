@@ -438,7 +438,7 @@ def _add_clock_tower(root, wall_colour, width, depth, base_height, roof_colour):
         turn = quarter * math.pi / 2
         # Face disc and its 12 tick marks go into shared meshes (rotated into place).
         spot = Matrix.Rotation(turn, 3, "Z") @ Vector((0, -out - 0.03, 0)) + Vector((0, cy, clock_z))
-        faces.cylinder(radius, 0.06, spot, axis="Y" if quarter % 2 == 0 else "X", segments=16)
+        faces.cylinder(radius, 0.06, spot, axis="Y" if quarter % 2 == 0 else "X", segments=32)
         for hour in range(12):
             a = hour * math.pi / 6
             r = radius * 0.82
@@ -671,7 +671,7 @@ def make_bus(name="Bus", location=(0, 0, 0), rotation=0.0, colour="bus"):
     root["headlights_material"] = lights.name
 
     for i, (sx, y) in enumerate(((-1, 2.3), (1, 2.3), (-1, -2.3), (1, -2.3))):
-        wheel = MeshBuilder().cylinder(WHEEL_RADIUS, 0.36, (0, 0, 0), axis="X", segments=12) \
+        wheel = MeshBuilder().cylinder(WHEEL_RADIUS, 0.36, (0, 0, 0), axis="X", segments=20) \
             .to_object(f"wheel_{i}", mat("tyre", 0.9), root, location=(sx * (w / 2 - 0.12), y, WHEEL_RADIUS))
         MeshBuilder().cylinder(0.24, 0.38, (0, 0, 0), axis="X", segments=8).box((0.39, 0.1, 0.34), (0, 0, 0)) \
             .to_object("hub", mat("hub"), wheel)                 # the bar across the hub makes the spin visible
@@ -946,6 +946,7 @@ def setup_render(engine, samples, scale):
     scene.render.engine = next(e for e in wanted if e in available)
     if engine == "eevee":
         scene.eevee.taa_render_samples = samples
+        scene.render.filter_size = 1.2                # a little sharper than the default 1.5
         # Coarse, short-range volumetrics: enough for a soft haze, cheap to render.
         scene.eevee.volumetric_tile_size = "16"
         scene.eevee.volumetric_samples = 32

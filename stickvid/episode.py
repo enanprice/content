@@ -30,7 +30,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "blender"))
 import shotlist  # noqa: E402  (the shot-list validator; plain Python, no Blender needed)
 
-FPS = 30
 LEAD = 0.30        # silence before a shot's narration
 TAIL = 0.45        # and after it, before the cut
 MUSIC_DEFAULT = 0.12
@@ -38,6 +37,88 @@ MUSIC_DEFAULT = 0.12
 
 class EpisodeError(RuntimeError):
     pass
+
+
+# ---------------------------------------------------------------------------
+# episode log: stop consecutive episodes from repeating themselves
+# ---------------------------------------------------------------------------
+LOG_FIELDS = [("structure", "Structure"), ("ending", "Ending"), ("lead_character", "Lead character"),
+              ("lead_building", "Lead building"), ("camera_opener", "Camera opener"),
+              ("lighting_mood", "Lighting mood")]
+
+
+def log_path(episode_path):
+    """The log lives beside the episode files, one log per folder."""
+    return os.path.join(os.path.dirname(os.path.abspath(episode_path)), "episode_log.json")
+
+
+def read_log(episode_path):
+    path = log_path(episode_path)
+    if not os.path.isfile(path):
+        return []
+    try:
+        with open(path, encoding="utf-8") as f:
+            entries = json.load(f)
+    except ValueError as e:
+        raise EpisodeError(f"{path} is not valid JSON ({e}). Fix or delete it.") from None
+    return entries if isinstance(entries, list) else []
+
+
+def variation(episode_path, spec):
+    """Compare an episode with the ones already rendered.
+
+    Returns (entry, refusal, report):
+        entry    this episode's log record
+        refusal  why it must not be rendered, or None
+        report   text comparing it with the last five episodes
+    An episode is refused if its structure AND its ending both match either
+    of the two most recent episodes. Re-rendering an episode that is
+    already in the log is always allowed: it is compared with the others.
+    """
+    name = os.path.splitext(os.path.basename(episode_path))[0]
+    if spec["log"] is None:
+        raise EpisodeError(
+            f'{episode_path} has no "log" block, so it cannot be checked against earlier episodes. Add:\n'
+            f'  "log": {{"structure": "...", "lead_character": "...", "lead_building": "...", "ending": "..."}}\n'
+            f"  structure: {', '.join(shotlist.STRUCTURES)}\n  ending: {', '.join(shotlist.ENDINGS)}\n"
+            f"  lead_building: {', '.join(shotlist.BUILDINGS)}")
+    entry = {"episode": name, "title": spec["title"], **spec["log"]}
+    earlier = [e for e in read_log(episode_path) if e.get("episode") != name]
+    last_five, last_two = earlier[-5:], earlier[-2:]
+
+    lines = [f"  variation report: {name} against the last {len(last_five)} episode(s)"]
+    if not last_five:
+        lines.append("    nothing in the log yet, so there is nothing to compare with.")
+    for key, label in LOG_FIELDS:
+        if not last_five:
+            lines.append(f"    {label + ':':<16}{entry[key]}")
+            continue
+        same = [e["episode"] for e in last_five if e.get(key) == entry[key]]
+        history = ", ".join(str(e.get(key, "?")) for e in last_five)
+        verdict = "new" if not same else f"used in {len(same)} of {len(last_five)} ({', '.join(same)})"
+        lines.append(f"    {label + ':':<16}{entry[key]:<26} {verdict:<34} recent: {history}")
+    if last_five:
+        repeats = sum(1 for key, _ in LOG_FIELDS if any(e.get(key) == entry[key] for e in last_five))
+        lines.append(f"    {len(LOG_FIELDS) - repeats} of {len(LOG_FIELDS)} choices are new compared with the last {len(last_five)}.")
+
+    refusal = None
+    for e in reversed(last_two):
+        if e.get("structure") == entry["structure"] and e.get("ending") == entry["ending"]:
+            refusal = (f'{name} will not be rendered: it has the same structure ("{entry["structure"]}") and the '
+                       f'same ending ("{entry["ending"]}") as {e["episode"]}, one of the last two episodes. '
+                       f"Change the structure or the ending in its \"log\" block (and the story to match).")
+            break
+    return entry, refusal, "\n".join(lines)
+
+
+def record(episode_path, entry):
+    """Add (or replace) an episode's entry in the log."""
+    import datetime
+    entries = [e for e in read_log(episode_path) if e.get("episode") != entry["episode"]]
+    entries.append({**entry, "rendered": datetime.date.today().isoformat()})
+    with open(log_path(episode_path), "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=2)
+        f.write("\n")
 
 
 def find_blender(explicit=None):
@@ -54,7 +135,7 @@ def find_blender(explicit=None):
         "set the BLENDER environment variable to the program's full path, or pass --blender PATH.")
 
 
-def plan_timing(spec, use_tts, cache_dir, log):
+def plan_timing(spec, use_tts, cache_dir, log, FPS):
     """Narrate each shot and fix every shot's length.
 
     Returns (durations, narrations): seconds per shot (whole frames), and
@@ -84,10 +165,10 @@ def plan_timing(spec, use_tts, cache_dir, log):
     return durations, narrations
 
 
-def run_blender(blender, resolved_path, frames_root, preview, log):
+def run_blender(blender, resolved_path, frames_root, preview, log, fps):
     """Render the shot list to PNG frames with blender/shots.py."""
     cmd = [blender, "-b", "-P", os.path.join(ROOT, "blender", "shots.py"), "--",
-           resolved_path, "--out", frames_root]
+           resolved_path, "--out", frames_root, "--fps", str(fps)]
     if preview:
         cmd.append("--preview")
     log("  rendering in Blender (this is the slow part)...")
@@ -106,10 +187,19 @@ def run_blender(blender, resolved_path, frames_root, preview, log):
     return frames
 
 
-def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, cache_dir=".cache"):
-    """Build one episode. Returns (name, duration_seconds)."""
+def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, cache_dir=".cache", fps=30):
+    """Build one episode. Returns (name, duration_seconds).
+
+    fps  frames per second of the finished video. 60 is smoother and takes
+         twice as long to render. A preview renders half of them.
+    """
+    FPS = fps
     name = os.path.splitext(os.path.basename(path))[0]
     spec = shotlist.load(path)
+    entry, refusal, report = variation(path, spec)
+    log(report)
+    if refusal:
+        raise EpisodeError(refusal)
     blender = find_blender(blender)
     os.makedirs(out_dir, exist_ok=True)
     work = os.path.join(out_dir, name + "_work")
@@ -117,7 +207,7 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
     os.makedirs(work, exist_ok=True)
 
     # 1. narration and timing
-    durations, narrations = plan_timing(spec, use_tts, cache_dir, log)
+    durations, narrations = plan_timing(spec, use_tts, cache_dir, log, FPS)
     starts = [sum(durations[:i]) for i in range(len(durations))]
     total = sum(durations)
     for i, (shot, start, seconds) in enumerate(zip(spec["shots"], starts, durations)):
@@ -131,10 +221,11 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
         shot["duration"] = seconds
         shot.pop("audio", None)
     raw.pop("music", None)                                            # sound is mixed here, not in Blender
+    raw.pop("log", None)
     resolved = os.path.join(work, name + ".resolved.json")
     with open(resolved, "w", encoding="utf-8") as f:
         json.dump(raw, f, indent=2)
-    frames = run_blender(blender, resolved, work, preview, log)
+    frames = run_blender(blender, resolved, work, preview, log, FPS)
     numbered = [(int(re.search(r"frame_(\d+)\.png$", f).group(1)), f) for f in frames]
 
     # thumbnail: the middle of the first shot, before captions go on
@@ -148,12 +239,15 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
     captions = Captions(words, max_words=3, uppercase=True, highlight=(255, 221, 0),
                         max_chars=18, style="bold") if words else None
 
+    # A preview is rendered at half size and half the frames, then scaled up
+    # smoothly to the full frame: the picture is soft rather than blocky, and
+    # the captions (drawn after scaling) stay sharp.
     out_fps = FPS // 2 if preview else FPS
-    size = (config.WIDTH // 2, config.HEIGHT // 2) if preview else (config.WIDTH, config.HEIGHT)
+    size = (config.WIDTH, config.HEIGHT)
     silent = os.path.join(work, name + ".silent.mp4")
     log("  burning captions and encoding...")
-    with VideoWriter(silent, size[0], size[1], out_fps, crf=26 if preview else 18,
-                     preset="veryfast" if preview else "medium") as video:
+    with VideoWriter(silent, size[0], size[1], out_fps, crf=20 if preview else 16,
+                     preset="veryfast" if preview else "slow") as video:
         cursor = 0
         for k in range(round(total * out_fps)):
             t = k / out_fps
@@ -162,12 +256,10 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
             while cursor + 1 < len(numbered) and numbered[cursor + 1][0] <= wanted:
                 cursor += 1
             img = Image.open(numbered[cursor][1]).convert("RGB")
-            if captions:
-                if img.size != (config.WIDTH, config.HEIGHT):
-                    img = img.resize((config.WIDTH, config.HEIGHT), Image.Resampling.BILINEAR)
-                captions.draw(img, t)
             if img.size != size:
-                img = img.resize(size, Image.Resampling.BILINEAR)
+                img = img.resize(size, Image.Resampling.LANCZOS)
+            if captions:
+                captions.draw(img, t)
             video.write(img)
 
     # 4. sound
@@ -187,4 +279,7 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
     final = os.path.join(out_dir, name + ".mp4")
     mux(silent, final, total, clips=effects, music=spec["music"], speech=speech, duck=True)
     os.remove(silent)
+    if not preview:
+        record(path, entry)                          # only finished renders go in the log
+        log(f"  logged in {log_path(path)}")
     return name, total

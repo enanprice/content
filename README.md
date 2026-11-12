@@ -50,8 +50,60 @@ What happens:
 5. **Export.** `out/ep01.mp4` (H.264, 30 fps, 1080x1920) and `out/ep01.png`,
    a thumbnail from the middle of the first shot.
 
-`--preview` gives 540x960 at 15 fps. The thumbnail is then half size too.
-Blender's frames are kept in `out/ep01_work/`.
+`--preview` renders at half size and half the frames, then scales the picture
+up smoothly to 1080x1920, so a preview looks soft rather than blocky and its
+captions stay sharp. It is for checking timing, not for judging picture
+quality. Blender's frames are kept in `out/ep01_work/`.
+
+```bash
+python make.py episodes/ep01.json --fps 60
+```
+
+`--fps` sets the frame rate (24, 30, 50 or 60; default 30). 60 is visibly
+smoother on camera moves and walking, and takes twice as long to render.
+
+### Episode log
+
+Every episode carries a `log` block describing what kind of episode it is:
+
+```json
+"log": {
+  "structure": "mystery",
+  "lead_character": "the man in the yellow hoodie",
+  "lead_building": "clock_tower",
+  "ending": "open question"
+}
+```
+
+| Field | Values |
+| --- | --- |
+| `structure` | `journey`, `mystery`, `countdown`, `debate`, `myth-correction` |
+| `ending` | `twist`, `reversal`, `callback`, `open question` |
+| `lead_character` | free text |
+| `lead_building` | `bakery`, `clock_tower`, `house`, `bus_depot`, `school` |
+| `camera_opener`, `lighting_mood` | read from the first shot. You may write them, but they must match it |
+
+When a full render finishes, the episode is added to `episodes/episode_log.json`
+(previews are not logged). Before any render, `make.py`:
+
+- **refuses** the episode if its structure and its ending both match either of
+  the last two logged episodes, and says which one;
+- prints a **variation report** comparing all six fields with the last five.
+
+```
+  variation report: ep07 against the last 5 episode(s)
+    Structure:      mystery        used in 1 of 5 (ep05)    recent: journey, countdown, debate, mystery, journey
+    Ending:         open question  used in 1 of 5 (ep05)    recent: twist, reversal, callback, open question, twist
+    ...
+ep07 will not be rendered: it has the same structure ("mystery") and the same
+ending ("open question") as ep05, one of the last two episodes.
+```
+
+`python make.py episodes/ep07.json --check` shows the report without rendering.
+Re-rendering an episode already in the log is always allowed. "Last" means
+order in the log file, which is the order episodes were first rendered. There
+is no flag to override the refusal: change the episode, or edit the log file
+by hand if it is wrong.
 
 Fields this adds to a shot list (everything else is in `blender/README.md`):
 

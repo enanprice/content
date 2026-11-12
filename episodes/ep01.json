@@ -1,5 +1,11 @@
 {
   "title": "Episode 1 (PLACEHOLDER SHOTS AND NARRATION - replace with your own)",
+  "log": {
+    "structure": "mystery",
+    "lead_character": "the man in the yellow hoodie",
+    "lead_building": "clock_tower",
+    "ending": "open question"
+  },
   "voice": "en-GB-RyanNeural",
   "shots": [
     {

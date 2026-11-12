@@ -11,6 +11,12 @@ Format
 ------
 {
   "title": "Episode 1",
+  "log": {                                     required by make.py; see "Episode log" in the README
+    "structure": "mystery",                    journey / mystery / countdown / debate / myth-correction
+    "lead_character": "the man in the hoodie",
+    "lead_building": "clock_tower",
+    "ending": "open question"                  twist / reversal / callback / open question
+  },
   "voice": "en-GB-RyanNeural",                 optional: any edge-tts voice
   "music": {"path": "music/bed.mp3", "volume": 0.12},   optional: ducks under the narration
   "shots": [
@@ -75,6 +81,10 @@ EXPRESSIONS = {
 }
 
 SFX = ["clock_chime", "bus_engine", "whoosh"]
+
+# Episode log: what kind of episode this is, so repeats can be spotted.
+STRUCTURES = ["journey", "mystery", "countdown", "debate", "myth-correction"]
+ENDINGS = ["twist", "reversal", "callback", "open question"]
 
 BUILDINGS = ["bakery", "clock_tower", "house", "bus_depot", "school"]
 # Things a camera or a look can aim at.
@@ -192,9 +202,33 @@ def validate(data, base_dir=".", source="shot list"):
     ck = _Check()
     if not isinstance(data, dict):
         raise ShotListError([f"the top level must be an object {{...}}, got {_kind(data)}."], source)
-    ck.keys("(top level)", data, {"title", "voice", "rate", "music", "shots"})
+    ck.keys("(top level)", data, {"title", "voice", "rate", "music", "log", "shots"})
     out = {"title": data.get("title") if isinstance(data.get("title"), str) else "",
-           "voice": "en-GB-RyanNeural", "rate": "+0%", "music": None, "shots": []}
+           "voice": "en-GB-RyanNeural", "rate": "+0%", "music": None, "log": None, "shots": []}
+    log = data.get("log")
+    if log is not None:
+        if not isinstance(log, dict):
+            ck.err("log", f"must be an object, got {_kind(log)}.")
+        else:
+            ck.keys("log", log, {"structure", "lead_character", "lead_building", "ending",
+                                 "camera_opener", "lighting_mood"})
+            entry = {}
+            for key, options in (("structure", STRUCTURES), ("ending", ENDINGS), ("lead_building", BUILDINGS)):
+                if key not in log:
+                    ck.err(f"log.{key}", f"is required. Choose one of: {', '.join(options)}.")
+                else:
+                    entry[key] = ck.choice(f"log.{key}", log[key], options)
+            lead = log.get("lead_character")
+            if not isinstance(lead, str) or not lead.strip():
+                ck.err("log.lead_character", "is required: a short name or description of who the episode follows.")
+            else:
+                entry["lead_character"] = lead.strip()
+            # The opener and mood describe the first shot. They may be left out
+            # (they are then read from it); if written, they must agree with it.
+            for key, options in (("camera_opener", MOVES), ("lighting_mood", LIGHTING)):
+                if key in log:
+                    entry[key] = ck.choice(f"log.{key}", log[key], options)
+            out["log"] = entry
     if "voice" in data:
         voice = data["voice"]
         if isinstance(voice, str) and voice.count("-") >= 2 and voice.endswith("Neural"):
@@ -414,6 +448,15 @@ def validate(data, base_dir=".", source="shot list"):
                 s["text"] = text.strip()
 
         out["shots"].append(s)
+
+    if out["log"] is not None and out["shots"]:
+        first = out["shots"][0]
+        for key, actual in (("camera_opener", first["camera"]["move"]), ("lighting_mood", first["lighting"])):
+            written = out["log"].get(key)
+            if written and written != actual:
+                ck.err(f"log.{key}", f'says "{written}" but the first shot uses "{actual}". '
+                                     f"Change one of them, or leave log.{key} out to have it filled in.")
+            out["log"][key] = actual
 
     if ck.errors:
         raise ShotListError(ck.errors, source)
