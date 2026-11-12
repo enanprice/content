@@ -7,3 +7,5 @@ output/*
 !output/pomodoro.mp4
 !output/study-environment.mp4
 out/
+blender/character_out/*
+!blender/character_out/character_test.mp4
