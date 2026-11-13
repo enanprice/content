@@ -190,7 +190,7 @@ def run_blender(blender, resolved_path, frames_root, preview, log, fps, draft=Fa
 
 
 def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, cache_dir=".cache", fps=30,
-          draft=False):
+          draft=False, resume=False):
     """Build one episode. Returns (name, duration_seconds).
 
     fps  frames per second of the finished video. 60 is smoother and takes
@@ -206,7 +206,8 @@ def build(path, out_dir, preview=False, use_tts=True, blender=None, log=print, c
     blender = find_blender(blender)
     os.makedirs(out_dir, exist_ok=True)
     work = os.path.join(out_dir, name + "_work")
-    shutil.rmtree(os.path.join(work, "frames"), ignore_errors=True)   # never mix frames from an older run
+    if not resume:
+        shutil.rmtree(os.path.join(work, "frames"), ignore_errors=True)   # never mix frames from an older run
     os.makedirs(work, exist_ok=True)
 
     # 1. narration and timing

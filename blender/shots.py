@@ -428,6 +428,7 @@ def main():
         else:
             scene.frame_start, scene.frame_end, scene.frame_step = entry["f0"], entry["f1"], step
             scene.render.filepath = os.path.join(out_dir, "frames", "frame_")
+            scene.render.use_overwrite = False       # frames already on disk are kept: lets --resume carry on
             bpy.ops.render.render(animation=True)
         print(f"rendered shot {entry['index']}")
 
